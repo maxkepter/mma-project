@@ -1,0 +1,34 @@
+{
+  "name": "mma-project",
+  "version": "1.0.0",
+  "description": "MMA Project - Monorepo with Expo App and NestJS Backend",
+  "private": true,
+  "workspaces": [
+    "app",
+    "server"
+  ],
+  "scripts": {
+    "app:dev": "cd app && npm run start",
+    "app:build": "cd app && npm run build",
+    "app:web": "cd app && npm run web",
+    "app:ios": "cd app && npm run ios",
+    "app:android": "cd app && npm run android",
+    "app:lint": "cd app && npm run lint",
+    "server:dev": "cd server && npm run start:dev",
+    "server:build": "cd server && npm run build",
+    "server:start": "cd server && npm run start:prod",
+    "server:lint": "cd server && npm run lint",
+    "server:test": "cd server && npm run test",
+    "server:test:e2e": "cd server && npm run test:e2e",
+    "dev": "npm run server:dev & npm run app:dev",
+    "build": "npm run server:build && npm run app:build",
+    "lint": "npm run app:lint && npm run server:lint",
+    "test": "npm run server:test",
+    "test:e2e": "npm run server:test:e2e"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
