@@ -46,3 +46,6 @@ coverage/
 
 # NestJS specific
 dist/
+
+# Claude CLI
+.claude/settings.local.json

@@ -1,0 +1,11 @@
+flowchart LR
+
+    %% Các thành phần (Nodes)
+    Actor1[Người dùng / Actor]:::actorStyle
+    System((Hệ thống / System)):::systemStyle
+    Actor2[Hệ thống ngoài / Actor]:::actorStyle
+
+    %% Luồng dữ liệu (Data flows)
+    Actor1 -- "Gửi yêu cầu (Data)" --> System
+    System -- "Phản hồi kết quả" --> Actor1
+    System -- "Đẩy dữ liệu" --> Actor2

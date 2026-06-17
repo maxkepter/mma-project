@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const chunks=[]; process.stdin.on('data', d=>chunks.push(d)); process.stdin.on('end', ()=>{ const i=JSON.parse(chunks.join('').replace(/^﻿/,'')); const f=(i.tool_input||{}).file_path||(i.tool_response||{}).filePath||''; if(/\\.(ts|tsx|js|jsx)$/.test(f)){ const {execSync}=require('child_process'); try { console.log('Running lint...'); execSync('npm run lint', {stdio:'inherit'}); console.log('Running build...'); execSync('npm run build', {stdio:'inherit'}); } catch(e){ process.exit(1); } } });\"",
+            "timeout": 600,
+            "statusMessage": "Running lint and build..."
+          }
+        ]
+      }
+    ]
+  }
+}

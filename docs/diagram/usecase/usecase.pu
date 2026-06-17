@@ -1,0 +1,22 @@
+@startuml
+' Cấu hình hiển thị từ trái sang phải
+left to right direction
+
+actor "User" as User
+actor "Quản trị viên" as Admin
+
+rectangle "LotoForge" {
+    ' 3. Định nghĩa các Use Case (Tự động ra hình oval)
+    usecase "View Number Frequency" as UC_Login
+    usecase "View Missing Number Statistics" as UC_View
+    usecase "View Falling Number Statistics" as UC_Manage
+    usecase "View Falling Number Statistics" as UC_Checkout
+    usecase "View Head-Tail Statistics"
+    usecase "View Pair Statistics"
+    usecase "View Statistical Heatmap"
+    usecase "Analyze Number Trends"
+    usecase "Analyze Number Cycles"
+    usecase "Analyze Number Correlations"
+    usecase "View Number Predictions"
+}
+@enduml
