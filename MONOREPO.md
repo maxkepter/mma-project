@@ -13,11 +13,13 @@ npm install
 ### Development
 
 Chạy cả app và server:
+
 ```bash
 npm run dev
 ```
 
 Chạy riêng:
+
 ```bash
 npm run app:dev      # Expo app
 npm run server:dev   # NestJS server (watch mode)
