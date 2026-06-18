@@ -1,6 +1,6 @@
 classDiagram
     class User {
-        -id: uuid-id
+        -id: uuid
         -username: string
         -hashPassword: string
         -email: string
@@ -19,16 +19,18 @@ classDiagram
 
     namespace CoreData {
         class LotteryResult {
-            -id: string-id
-            -date: date
+            -id: uuid
+            -date: Date
             -source: string
             -region: string
+            +addNumber(number: LotteryNumber) void
+            +getNumbers() LotteryNumber[]
         }
 
         class LotteryNumber {
-            -prizeLevel: PrizeLevel
-            -number: string
-            -position: number
+            -prizeLevel: prizeLevel
+            -value: string
+            -position: int
             +getTwoDigitNumber() string
             +getHeadTailNumber() string
         }
@@ -49,26 +51,33 @@ classDiagram
     <<ValueObject>> LotteryNumber
     <<Enumeration>> PrizeLevel
 
-    LotteryNumber "*" --* "1" LotteryResult : belongs to
-    LotteryNumber ..> PrizeLevel : has
+    LotteryResult "1" *-- "*" LotteryNumber : contains
+    LotteryNumber ..> PrizeLevel : uses
 
-    namespace ArticleModule {
+    namespace NewsModule {
         class NewsArticle {
             -id: uuid
             -title: string
             -summary: string
             -content: string
             -source: string
-            -publishDate: date
+            -publishDate: Date
         }
-
+        class Signal {
+            -id: uuid
+            -type: string
+            -content: string
+            -source: string
+            -detectedAt: Date
+            +evaluate() float
+        }
         class DeathRecord {
             -id: uuid
             -name: string
             -age: int
-            -gender
-            -birthDate: date
-            -deathDate: date
+            -gender: Gender
+            -birthDate: Date
+            -deathDate: Date
             -causeOfDeath: string
             -source: string
         }
@@ -77,42 +86,105 @@ classDiagram
     DeathRecord ..> Gender : has
 
     namespace StrategyModule {
-        class Strategy {}
-        class StrategyCondition {}
+        class Strategy {
+            -id: uuid
+            -userId: uuid
+            -name: string
+            -description: string
+            -createdAt: Date
+            +addCondition(condition: StrategyCondition) void
+            +runBacktest() BacktestRun
+        }
+        class StrategyCondition {
+            -id: uuid
+            -type: string
+            -parameters: json
+            +evaluate(result: LotteryResult) boolean
+        }
+        class BacktestRun {
+            -id: uuid
+            -strategyId: uuid
+            -startDate: Date
+            -endDate: Date
+            -winRate: float
+            -profit: float
+            +execute() BacktestResult
+        }
+        class BacktestResult {
+            -id: uuid
+            -backtestRunId: uuid
+            -totalBets: int
+            -wonBets: int
+            -lostBets: int
+            -totalProfit: float
+        }
     }
 
     <<AggregateRoot>> Strategy
     <<ValueObject>> StrategyCondition
+    <<Entity>> BacktestRun
+    <<ValueObject>> BacktestResult
 
-    StrategyCondition "1" --* "*" Strategy : belongs to
-    StrategyCondition "1" --> "*" StrategyCondition : has
-    Strategy "*" --> "1" User : created by
+    Strategy "1" *-- "*" StrategyCondition : defines
+    Strategy "1" o-- "*" BacktestRun : executes
+    BacktestRun "1" *-- "1" BacktestResult : yields
+    User "1" --> "*" Strategy : owns
 
-    namespace BetModule {
-        class BetEntry {}
-        class BetResult {}
+
+    namespace JournalModule {
+        class BetEntry {
+            -id: uuid
+            -userId: uuid
+            -number: string
+            -amount: float
+            -betDate: Date
+            +updateStatus(status: BetStatus) void
+        }
+        class BetResult {
+            -id: uuid
+            -betId: uuid
+            -actualNumber: string
+            -isWin: boolean
+            -payout: float
+            +calculatePayout(amount: float) float
+        }
+        class BetStatus {
+            -Pending
+            -Won
+            -Lost
+        }
     }
+
+    <<AggregateRoot>> BetEntry
+    <<Entity>> BetResult
+    <<Enumeration>> BetStatus
 
     BetResult "1" --* "*" BetEntry : belongs to
     BetEntry "*" --> "1" User : created by
 
-    namespace BackTestModule {
-        class BackTest {}
-        class BackTestResult {}
-    }
-
-    BackTestResult "1" --* "*" BackTest : belongs to
-    BackTest "*" --* "1" Strategy : based on
-
     namespace AIModule {
-        class Conversation {}
-        class ChatMessage {}
+        class AIInsight {
+            -id: uuid
+            -content: string
+            -confidenceScore: float
+            -createdAt: Date
+        }
+        class ChatConversation {
+            -id: uuid
+            -userId: uuid
+            +addMessage(message: ChatMessage) void
+        }
+        class ChatMessage {
+            -id: uuid
+            -role: string
+            -content: string
+            -timestamp: Date
+        }
     }
 
-    <<AggregateRoot>> Conversation
+    <<AggregateRoot>> ChatConversation
     <<Entity>> ChatMessage
 
-    ChatMessage "1" --* "*" Conversation : belongs to
-    Conversation "*" --> "1" User : created by
+    ChatConversation "1" *-- "*" ChatMessage : contains
+    ChatConversation "*" --> "1" User : created by
 
-    <<entity>> LotteryResult
