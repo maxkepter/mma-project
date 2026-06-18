@@ -1,18 +1,118 @@
 classDiagram
-   class User{
-    -username: string-id
-    -hashPassword: string
-    -email: string
-    -name: string
-   }
-   class LotteryResult{
-    -id: string-id
-    -date: date
-    -source: string
-   }
-   class LotteryNumber{
-    -prize: string
-    -number: string
-   }
+    class User {
+        -id: uuid-id
+        -username: string
+        -hashPassword: string
+        -email: string
+        -displayName: string
+        -createAt: Date
+        +checkPassword(hashPassword: string) boolean
+        +updateProfile(displayName: string, email: string) void
+    }
 
-   class 
+    class Gender {
+        -Male
+        -Female
+    }
+
+    <<Enumeration>> Gender
+
+    namespace CoreData {
+        class LotteryResult {
+            -id: string-id
+            -date: date
+            -source: string
+            -region: string
+        }
+
+        class LotteryNumber {
+            -prizeLevel: PrizeLevel
+            -number: string
+            -position: number
+            +getTwoDigitNumber() string
+            +getHeadTailNumber() string
+        }
+
+        class PrizeLevel {
+            -Special
+            -First
+            -Second
+            -Third
+            -Fourth
+            -Fifth
+            -Sixth
+            -Seventh
+        }
+    }
+
+    <<AggregateRoot>> LotteryResult
+    <<ValueObject>> LotteryNumber
+    <<Enumeration>> PrizeLevel
+
+    LotteryNumber "*" --* "1" LotteryResult : belongs to
+    LotteryNumber ..> PrizeLevel : has
+
+    namespace ArticleModule {
+        class NewsArticle {
+            -id: uuid
+            -title: string
+            -summary: string
+            -content: string
+            -source: string
+            -publishDate: date
+        }
+
+        class DeathRecord {
+            -id: uuid
+            -name: string
+            -age: int
+            -gender
+            -birthDate: date
+            -deathDate: date
+            -causeOfDeath: string
+            -source: string
+        }
+    }
+
+    DeathRecord ..> Gender : has
+
+    namespace StrategyModule {
+        class Strategy {}
+        class StrategyCondition {}
+    }
+
+    <<AggregateRoot>> Strategy
+    <<ValueObject>> StrategyCondition
+
+    StrategyCondition "1" --* "*" Strategy : belongs to
+    StrategyCondition "1" --> "*" StrategyCondition : has
+    Strategy "*" --> "1" User : created by
+
+    namespace BetModule {
+        class BetEntry {}
+        class BetResult {}
+    }
+
+    BetResult "1" --* "*" BetEntry : belongs to
+    BetEntry "*" --> "1" User : created by
+
+    namespace BackTestModule {
+        class BackTest {}
+        class BackTestResult {}
+    }
+
+    BackTestResult "1" --* "*" BackTest : belongs to
+    BackTest "*" --* "1" Strategy : based on
+
+    namespace AIModule {
+        class Conversation {}
+        class ChatMessage {}
+    }
+
+    <<AggregateRoot>> Conversation
+    <<Entity>> ChatMessage
+
+    ChatMessage "1" --* "*" Conversation : belongs to
+    Conversation "*" --> "1" User : created by
+
+    <<entity>> LotteryResult

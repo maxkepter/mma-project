@@ -1,0 +1,45 @@
+flowchart TD
+    %% Context Map using DDD relationships
+
+    subgraph CoreDomain [Core Domain]
+        LotteryCore((Lottery Core))
+        Statistics((Statistics))
+        Analytics((Analytics))
+    end
+
+    subgraph SupportingDomain [Supporting Domain]
+        Strategy((Strategy))
+        Journal((Journal))
+        News((News))
+        AI((AI))
+    end
+
+    subgraph GenericDomain [Generic Domain]
+        Identity((Identity))
+        Knowledge((Knowledge))
+    end
+
+    %% Relationships
+    Identity -->|Provides Auth| LotteryCore
+    Identity -->|Provides Auth| Strategy
+    Identity -->|Provides Auth| Journal
+    Identity -->|Provides Auth| Knowledge
+    Identity -->|Provides Auth| AI
+
+    LotteryCore -->|Supplies Data| Statistics
+    Statistics -->|Supplies Insights| Analytics
+    Analytics -->|Supplies Predictions| Strategy
+    Analytics -->|Supplies Predictions| AI
+
+    Strategy -->|Provides Backtest| Journal
+    Journal -->|Learns Performance| Strategy
+
+    News -->|Signals| LotteryCore
+    Knowledge -->|Curates| LotteryCore
+    Knowledge -->|Curates| Statistics
+    Knowledge -->|Curates| Strategy
+    Knowledge -->|Curates| AI
+
+    AI -->|Explains| Analytics
+    AI -->|Advises| Strategy
+    AI -->|Reports| Identity

@@ -1,0 +1,21 @@
+C4Container
+    title Container Diagram for LotoForge
+
+    Person(user, "User")
+
+    System_Boundary(c1, "LotoForge System") {
+        Container(app, "Mobile App", "React Native, Expo", "Provides user interface for statistics, analytics, and strategy management.")
+        Container(api, "Backend API", "NestJS", "Handles core domain logic, data processing, and AI integrations.")
+        ContainerDb(db, "Database", "PostgreSQL", "Stores lottery results, user data, strategies, and performance logs.")
+        Container(worker, "Crawler Service", "NestJS Worker", "Fetches raw lottery data from external sources.")
+    }
+
+    System_Ext(externalLottery, "External Lottery Sources")
+    System_Ext(ai, "AI Service", "OpenAI/Anthropic API", "Provides insights and predictions.")
+
+    Rel(user, app, "Uses")
+    Rel(app, api, "Calls", "HTTPS/REST")
+    Rel(api, db, "Reads/Writes")
+    Rel(worker, externalLottery, "Fetches", "HTTPS")
+    Rel(worker, api, "Ingests", "Message Queue")
+    Rel(api, ai, "Queries", "HTTPS")

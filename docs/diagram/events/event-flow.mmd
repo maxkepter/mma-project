@@ -1,0 +1,54 @@
+flowchart LR
+    %% Event producers and consumers
+
+    subgraph producers [Producers]
+        Crawler(Crawler Service)
+        User(User)
+        Worker(Analytics Worker)
+        NewsSource(News Fetcher)
+    end
+
+    subgraph events [Domain Events]
+        E1[LotteryCollected]
+        E2[StatisticsCalculated]
+        E3[PredictionGenerated]
+        E4[BacktestCompleted]
+        E5[BetRecorded]
+        E6[StrategyCreated]
+        E7[NewsFetched]
+        E8[AIInsightReady]
+        E9[ReportGenerated]
+    end
+
+    subgraph consumers [Consumers]
+        C1(Notification Service)
+        C2(Strategy Engine)
+        C3(AI Analyzer)
+        C4(Report Generator)
+        C5(Knowledge Curator)
+        C6(Performance Tracker)
+    end
+
+    %% Event producers
+    Crawler -->|publishes| E1
+    Worker -->|publishes| E2
+    Worker -->|publishes| E3
+    User -->|publishes| E4
+    User -->|publishes| E5
+    User -->|publishes| E6
+    NewsSource -->|publishes| E7
+    Worker -->|publishes| E8
+    Worker -->|publishes| E9
+
+    %% Event consumers
+    E1 -->|triggers| Worker
+    E1 -->|updates| C2
+    E2 -->|analyzes| C3
+    E3 -->|notifies| C1
+    E4 -->|archives| C5
+    E5 -->|calculates| C6
+    E6 -->|indexes| C5
+    E7 -->|feeds| C3
+    E8 -->|notifies| C1
+    E8 -->|archives| C5
+    E9 -->|delivers| C1

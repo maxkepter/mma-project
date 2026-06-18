@@ -1,0 +1,86 @@
+@startuml
+left to right direction
+
+package "Api Gateway" {
+    [AuthMiddleware]
+    [RateLimiter]
+}
+
+package "Identity Module" as Identity {
+    [UserController]
+    [UserService]
+    [UserRepository]
+}
+
+package "Lottery Core Module" as LotteryCore {
+    [LotteryResultController]
+    [LotteryResultService]
+    [LotteryResultRepository]
+    [CrawlerService]
+}
+
+package "Statistics Module" as Statistics {
+    [FrequencyService]
+    [GanService]
+    [ConsecutiveLossService]
+    [HeadTailService]
+    [NumberPairService]
+    [HeatmapService]
+}
+
+package "Analytics Module" as Analytics {
+    [TrendAnalysisService]
+    [CycleAnalysisService]
+    [CorrelationService]
+    [PredictionService]
+}
+
+package "Strategy Module" as Strategy {
+    [StrategyController]
+    [StrategyService]
+    [ConditionEngine]
+    [BacktestEngine]
+}
+
+package "Journal Module" as Journal {
+    [BetEntryController]
+    [BetEntryService]
+    [PerformanceService]
+}
+
+package "News Module" as News {
+    [NewsController]
+    [NewsService]
+    [SignalService]
+}
+
+package "Knowledge Module" as Knowledge {
+    [KnowledgeController]
+    [KnowledgeService]
+}
+
+package "AI Module" as AI {
+    [ChatController]
+    [AIAnalysisService]
+    [ReportGenerator]
+}
+
+Api Gateway --> Identity
+Api Gateway --> LotteryCore
+Api Gateway --> Statistics
+Api Gateway --> Analytics
+Api Gateway --> Strategy
+Api Gateway --> Journal
+Api Gateway --> News
+Api Gateway --> Knowledge
+Api Gateway --> AI
+
+LotteryCore --> Statistics
+Statistics --> Analytics
+Analytics --> Strategy
+Strategy --> Journal
+LotteryCore --> AI
+Statistics --> AI
+Analytics --> AI
+
+@enduml

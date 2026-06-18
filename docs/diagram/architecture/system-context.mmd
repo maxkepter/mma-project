@@ -1,0 +1,16 @@
+C4Context
+    title System Context Diagram for LotoForge
+
+    Person(user, "User", "Lottery enthusiast interested in statistical analysis and betting strategies.")
+    System(lotoForge, "LotoForge System", "Analyzes lottery results, provides predictions, tracks bets, and offers AI-driven insights.")
+    System_Ext(externalLottery, "External Lottery Sources", "Government/official lottery result APIs.")
+    System_Ext(externalNews, "External News/Signals", "Providers of signals and lottery-related news.")
+
+    Rel(user, lotoForge, "Analyzes data, manages strategies, tracks bets")
+    Rel(externalLottery, lotoForge, "Provides raw lottery data")
+    Rel(externalNews, lotoForge, "Provides signals and news")
+    Rel(lotoForge, user, "Delivers insights, predictions, and performance reports")
+
+    UpdateElementStyle(lotoForge, $fontColor="#ffffff", $bgColor="#0074d9")
+    UpdateElementStyle(externalLottery, $fontColor="#ffffff", $bgColor="#7fdbff")
+    UpdateElementStyle(externalNews, $fontColor="#ffffff", $bgColor="#7fdbff")

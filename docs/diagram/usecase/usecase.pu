@@ -1,22 +1,87 @@
 @startuml
-' Cấu hình hiển thị từ trái sang phải
 left to right direction
 
 actor "User" as User
-actor "Quản trị viên" as Admin
 
 rectangle "LotoForge" {
-    ' 3. Định nghĩa các Use Case (Tự động ra hình oval)
-    usecase "View Number Frequency" as UC_Login
-    usecase "View Missing Number Statistics" as UC_View
-    usecase "View Falling Number Statistics" as UC_Manage
-    usecase "View Falling Number Statistics" as UC_Checkout
-    usecase "View Head-Tail Statistics"
-    usecase "View Pair Statistics"
-    usecase "View Statistical Heatmap"
-    usecase "Analyze Number Trends"
-    usecase "Analyze Number Cycles"
-    usecase "Analyze Number Correlations"
-    usecase "View Number Predictions"
+    package "Statistics" {
+        usecase "UC-01 Xem thống kê tần suất"
+        usecase "UC-02 Xem thống kê số gan"
+        usecase "UC-03 Xem thống kê lô rơi"
+        usecase "UC-04 Xem thống kê đầu đuôi"
+        usecase "UC-05 Xem thống kê cặp số"
+        usecase "UC-06 Xem heatmap"
+    }
+
+    package "Analytics & Prediction" {
+        usecase "UC-07 Phân tích xu hướng"
+        usecase "UC-08 Phân tích chu kỳ"
+        usecase "UC-09 Phân tích tương quan"
+        usecase "UC-10 Xem dự báo"
+        usecase "UC-11 Nhận phân tích AI"
+    }
+
+    package "Strategy Management" {
+        usecase "UC-12 Quản lý chiến lược"
+        usecase "UC-13 Xây dựng điều kiện"
+        usecase "UC-14 Backtest chiến lược"
+        usecase "UC-15 Phân tích backtest"
+        usecase "UC-16 So sánh chiến lược"
+        usecase "UC-17 Sinh chiến lược AI"
+    }
+
+    package "Betting Journal" {
+        usecase "UC-18 Ghi nhật ký đánh"
+        usecase "UC-19 Quản lý nhật ký đánh"
+        usecase "UC-20 Theo dõi hiệu suất"
+    }
+
+    package "Knowledge Hub" {
+        usecase "UC-21 Lưu tri thức"
+    }
+
+    package "News & Signals" {
+        usecase "UC-24 Xem tin tức"
+        usecase "UC-25 Xem tín hiệu"
+    }
+
+    package "AI Assistant" {
+        usecase "UC-26 Trao đổi với AI"
+        usecase "UC-27 Phân tích chiến lược AI"
+        usecase "UC-28 Tạo báo cáo AI"
+    }
 }
+
+User --> "UC-01 Xem thống kê tần suất"
+User --> "UC-02 Xem thống kê số gan"
+User --> "UC-03 Xem thống kê lô rơi"
+User --> "UC-04 Xem thống kê đầu đuôi"
+User --> "UC-05 Xem thống kê cặp số"
+User --> "UC-06 Xem heatmap"
+
+User --> "UC-07 Phân tích xu hướng"
+User --> "UC-08 Phân tích chu kỳ"
+User --> "UC-09 Phân tích tương quan"
+User --> "UC-10 Xem dự báo"
+User --> "UC-11 Nhận phân tích AI"
+
+User --> "UC-12 Quản lý chiến lược"
+User --> "UC-13 Xây dựng điều kiện"
+User --> "UC-14 Backtest chiến lược"
+User --> "UC-15 Phân tích backtest"
+User --> "UC-16 So sánh chiến lược"
+User --> "UC-17 Sinh chiến lược AI"
+
+User --> "UC-18 Ghi nhật ký đánh"
+User --> "UC-19 Quản lý nhật ký đánh"
+User --> "UC-20 Theo dõi hiệu suất"
+
+User --> "UC-21 Lưu tri thức"
+
+User --> "UC-24 Xem tin tức"
+User --> "UC-25 Xem tín hiệu"
+
+User --> "UC-26 Trao đổi với AI"
+User --> "UC-27 Phân tích chiến lược AI"
+User --> "UC-28 Tạo báo cáo AI"
 @enduml

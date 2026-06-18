@@ -1,0 +1,41 @@
+flowchart TD
+    subgraph legend[Legend: X -/> Y means Y must not depend on X]
+    end
+
+    %% Layered architecture — strict dependencies
+    PresentationLayer["Presentation Layer
+    Controllers / Middleware"] --> ApplicationLayer["Application Layer
+    Services / Use Cases"]
+    ApplicationLayer --> DomainLayer["Domain Layer
+    Entities / Value Objects"]
+    ApplicationLayer --> InfrastructureLayer["Infrastructure Layer
+    Repositories / Clients"]
+
+    %% Cross-cutting — everything depends on Domain
+    DomainLayer -->|"✓"| DomainLayer
+
+    %% Forbidden dependencies
+    PresentationLayer -..->|"✗"| InfrastructureLayer
+    InfrastructureLayer -..->|"✗"| PresentationLayer
+
+    DomainLayer -..->|"✗"| InfrastructureLayer
+    DomainLayer -..->|"✗"| ApplicationLayer
+    DomainLayer -..->|"✗"| PresentationLayer
+
+    %% Module-level rules
+    subgraph ModuleDependencies [Module-level rules]
+        direction LR
+        AppIdentity["Identity"] --> AppLottery["LotteryCore"]
+        AppLottery --> AppStats["Statistics"]
+        AppStats --> AppAnalytics["Analytics"]
+        AppAnalytics --> AppStrategy["Strategy"]
+        AppStrategy --> AppJournal["Journal"]
+
+        AppAnalytics --> AppAI["AI"]
+        AppLottery --> AppNews["News"]
+    end
+
+    %% Cross-module restrictions
+    note["All modules may depend on Identity for auth.
+    No module depends on Knowledge — it is write-once, read-many.
+    Knowledge is a side effect, not a dependency."]
