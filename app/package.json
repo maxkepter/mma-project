@@ -15,7 +15,7 @@
     "typescript": "~5.9.2",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0"
-  }
+  },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.4.0",

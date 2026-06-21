@@ -6,9 +6,7 @@ classDiagram
         -email: string
         -displayName: string
         -createAt: Date
-        +checkPassword(hashPassword: string) boolean
-        +updateProfile(displayName: string, email: string) void
-    }
+          }
 
     class Gender {
         -Male
@@ -23,16 +21,12 @@ classDiagram
             -date: Date
             -source: string
             -region: string
-            +addNumber(number: LotteryNumber) void
-            +getNumbers() LotteryNumber[]
         }
 
         class LotteryNumber {
             -prizeLevel: prizeLevel
             -value: string
             -position: int
-            +getTwoDigitNumber() string
-            +getHeadTailNumber() string
         }
 
         class PrizeLevel {
@@ -63,14 +57,6 @@ classDiagram
             -source: string
             -publishDate: Date
         }
-        class Signal {
-            -id: uuid
-            -type: string
-            -content: string
-            -source: string
-            -detectedAt: Date
-            +evaluate() float
-        }
         class DeathRecord {
             -id: uuid
             -name: string
@@ -88,31 +74,22 @@ classDiagram
     namespace StrategyModule {
         class Strategy {
             -id: uuid
-            -userId: uuid
             -name: string
             -description: string
             -createdAt: Date
-            +addCondition(condition: StrategyCondition) void
-            +runBacktest() BacktestRun
         }
         class StrategyCondition {
-            -id: uuid
             -type: string
             -parameters: json
-            +evaluate(result: LotteryResult) boolean
         }
         class BacktestRun {
             -id: uuid
-            -strategyId: uuid
             -startDate: Date
             -endDate: Date
             -winRate: float
             -profit: float
-            +execute() BacktestResult
         }
         class BacktestResult {
-            -id: uuid
-            -backtestRunId: uuid
             -totalBets: int
             -wonBets: int
             -lostBets: int
@@ -134,19 +111,15 @@ classDiagram
     namespace JournalModule {
         class BetEntry {
             -id: uuid
-            -userId: uuid
             -number: string
             -amount: float
             -betDate: Date
-            +updateStatus(status: BetStatus) void
         }
         class BetResult {
             -id: uuid
-            -betId: uuid
             -actualNumber: string
             -isWin: boolean
             -payout: float
-            +calculatePayout(amount: float) float
         }
         class BetStatus {
             -Pending
@@ -170,20 +143,19 @@ classDiagram
             -createdAt: Date
         }
         class ChatConversation {
+            <<AggregateRoot>>
             -id: uuid
             -userId: uuid
-            +addMessage(message: ChatMessage) void
+            -chatType: string
+            -title: string
         }
         class ChatMessage {
-            -id: uuid
+            <<ValueObject>>
             -role: string
             -content: string
             -timestamp: Date
         }
     }
-
-    <<AggregateRoot>> ChatConversation
-    <<Entity>> ChatMessage
 
     ChatConversation "1" *-- "*" ChatMessage : contains
     ChatConversation "*" --> "1" User : created by
