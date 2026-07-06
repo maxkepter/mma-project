@@ -306,7 +306,7 @@ Exclude:
 
 Requirements:
 
-- Explicitly specify generic types
+- Explicitly specify generic types.
 
 Bad:
 
@@ -318,8 +318,78 @@ List<T>
 Good:
 
 ```text
-Promise<UserDto>
-List<LotteryResultDto>
+Page~ProjectRes~
+ProjectUserRes[]
+```
+
+- Every class must include a stereotype annotation to identify its role.
+
+Supported stereotypes:
+
+```text
+<<Controller>>
+<<Service>>
+<<Repository>>
+<<Mapper>>
+<<DTO>>
+<<Client>>
+<<Consumer>>
+<<Producer>>
+<<Policy>>
+<<Specification>>
+<<Guard>>
+<<Interceptor>>
+<<Filter>>
+<<Middleware>>
+<<Module>>
+```
+
+- Attribute format: `+name: type` or `-name: type`
+- Method format: `+methodName(param: type) returnType`
+- Use lowercase for primitive types: `string`, `boolean`, `number`, `uuid`
+- Use `?` suffix for optional parameters: `role?: ProjectRole`
+- Omit return type for synchronous void methods.
+- **For NestJS / Async technologies**, explicitly specify `Promise~T~` as the return type for asynchronous operations (Controllers, Services, Repositories). If the async method returns void, use `Promise~void~`.
+
+Bad:
+
+```text
++String projectName
++Boolean isPublic
++getProjects() Page~ProjectRes~
+```
+
+Good:
+
+```text
++projectName: string
++isPublic: boolean
++getProjects() Promise~Page~ProjectRes~~
+```
+
+Example:
+
+```mermaid
+classDiagram
+    class ProjectController {
+        <<Controller>>
+        -projectService: ProjectService
+        +getProjects(request: PageRequest) Promise~Page~ProjectRes~~
+        +createProject(request: CreateProjectReq) Promise~ProjectRes~
+        +deleteProject(projectId: uuid) Promise~void~
+    }
+
+    class ProjectService {
+        <<Service>>
+        -projectRepo: Repository~Project~
+        +createProject(projectName: string, isPublic: boolean, ownerName: string) ProjectRes
+    }
+
+    class CreateProjectReq {
+        <<DTO>>
+        +projectName: string
+        +isPublic: boolean
+    }
 ```
 
 Relationships must be explicit.

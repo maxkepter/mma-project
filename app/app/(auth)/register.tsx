@@ -17,11 +17,13 @@ import {
 import { Link, useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '../../contexts/auth-context';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { register } = useAuth();
 
   // Form state based on User entity fields
   const [username, setUsername] = useState('');
@@ -53,20 +55,16 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      // TODO: Call API Register
-      // POST /auth/register with { username, email, displayName, password }
-      // Server will hash the password before storing
-      setTimeout(() => {
-        setLoading(false);
-        Alert.alert(
-          'Thành công',
-          'Đăng ký tài khoản thành công! Vui lòng đăng nhập.',
-          [{ text: 'OK', onPress: () => router.replace('/login') }]
-        );
-      }, 1000);
-    } catch {
+      await register(username, email, displayName, password);
       setLoading(false);
-      Alert.alert('Lỗi', 'Đăng ký thất bại. Vui lòng thử lại.');
+      Alert.alert(
+        'Thành công',
+        'Đăng ký tài khoản thành công! Vui lòng đăng nhập.',
+        [{ text: 'OK', onPress: () => router.replace('/login') }]
+      );
+    } catch (error: any) {
+      setLoading(false);
+      Alert.alert('Lỗi', error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     }
   };
 

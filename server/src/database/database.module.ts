@@ -12,7 +12,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       database: process.env.DB_NAME ?? 'mma_db',
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV !== 'production',
-      logging: process.env.NODE_ENV !== 'production',
+      //   logging: process.env.NODE_ENV !== 'production',
     }),
   ],
 })

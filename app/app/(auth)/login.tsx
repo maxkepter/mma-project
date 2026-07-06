@@ -16,11 +16,13 @@ import {
 import { Link, useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '../../contexts/auth-context';
 
 export default function LoginScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { login } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -34,15 +36,11 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      // TODO: Call API Login
-      // For now, simulate success
-      setTimeout(() => {
-        setLoading(false);
-        router.replace('/(tabs)');
-      }, 1000);
-    } catch {
+      await login(username, password);
+      // Navigation to /(tabs) will be handled automatically by the auth guard in _layout.tsx
+    } catch (error: any) {
       setLoading(false);
-      Alert.alert('Lỗi', 'Đăng nhập thất bại. Vui lòng thử lại.');
+      Alert.alert('Lỗi', error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     }
   };
 

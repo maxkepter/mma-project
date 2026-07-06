@@ -22,6 +22,13 @@ export class User {
   @Column()
   displayName!: string;
 
+  @Column({
+    name: 'current_hashed_refresh_token',
+    nullable: true,
+    type: 'text',
+  })
+  currentHashedRefreshToken?: string;
+
   @CreateDateColumn()
   createAt!: Date;
 }
