@@ -16,6 +16,8 @@ export class LotteryNumber {
   @Column()
   position!: number;
 
-  @ManyToOne(() => LotteryResult, (result) => result.numbers, { onDelete: 'CASCADE' })
+  @ManyToOne(() => LotteryResult, (result) => result.numbers, {
+    onDelete: 'CASCADE',
+  })
   lotteryResult!: LotteryResult;
 }

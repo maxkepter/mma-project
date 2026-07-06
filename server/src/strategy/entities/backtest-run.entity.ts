@@ -22,6 +22,8 @@ export class BacktestRun {
   @Column(() => BacktestResult)
   result!: BacktestResult;
 
-  @ManyToOne(() => Strategy, (strategy) => strategy.backtestRuns, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Strategy, (strategy) => strategy.backtestRuns, {
+    onDelete: 'CASCADE',
+  })
   strategy!: Strategy;
 }

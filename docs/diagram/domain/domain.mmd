@@ -1,12 +1,13 @@
 classDiagram
     class User {
+        <<AggregateRoot>>
         -id: uuid
         -username: string
         -hashPassword: string
         -email: string
         -displayName: string
         -createAt: Date
-          }
+    }
 
     class Gender {
         -Male
@@ -14,6 +15,32 @@ classDiagram
     }
 
     <<Enumeration>> Gender
+
+    namespace AuthModule {
+        class RefreshToken {
+            <<Entity>>
+            -tokenId: uuid
+            -token: string
+            -createAt: Date
+            -expiresAt: Date
+            -isRevoked: boolean
+            -revokedDate: Date
+            +revoke()
+            +isValid(): boolean
+            +isExpired(): boolean
+        }
+
+        class AccessTokenPayload {
+            <<ValueObject>>
+            -userId: uuid
+            -username: string
+            -displayName: string
+            -email: string
+        }
+    }
+
+    User "1" *-- "*" RefreshToken : owns
+    AccessTokenPayload .. RefreshToken : used by
 
     namespace CoreData {
         class LotteryResult {

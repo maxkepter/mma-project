@@ -34,7 +34,10 @@ export class BetEntry {
   @JoinColumn({ name: 'userId' })
   user!: User;
 
-  @OneToOne(() => BetResult, (result) => result.betEntry, { cascade: true, nullable: true })
+  @OneToOne(() => BetResult, (result) => result.betEntry, {
+    cascade: true,
+    nullable: true,
+  })
   @JoinColumn()
   result?: BetResult;
 }
