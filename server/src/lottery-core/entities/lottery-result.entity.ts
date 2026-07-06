@@ -15,6 +15,8 @@ export class LotteryResult {
   @Column()
   region!: string;
 
-  @OneToMany(() => LotteryNumber, (number) => number.lotteryResult, { cascade: true })
+  @OneToMany(() => LotteryNumber, (number) => number.lotteryResult, {
+    cascade: true,
+  })
   numbers!: LotteryNumber[];
 }

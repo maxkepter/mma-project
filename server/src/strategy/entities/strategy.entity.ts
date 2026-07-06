@@ -32,7 +32,9 @@ export class Strategy {
   @JoinColumn({ name: 'userId' })
   user!: User;
 
-  @OneToMany(() => StrategyCondition, (condition) => condition.strategy, { cascade: true })
+  @OneToMany(() => StrategyCondition, (condition) => condition.strategy, {
+    cascade: true,
+  })
   conditions!: StrategyCondition[];
 
   @OneToMany(() => BacktestRun, (run) => run.strategy, { cascade: true })

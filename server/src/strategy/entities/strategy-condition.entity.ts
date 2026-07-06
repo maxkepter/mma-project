@@ -12,6 +12,8 @@ export class StrategyCondition {
   @Column({ type: 'jsonb' })
   parameters!: Record<string, any>;
 
-  @ManyToOne(() => Strategy, (strategy) => strategy.conditions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Strategy, (strategy) => strategy.conditions, {
+    onDelete: 'CASCADE',
+  })
   strategy!: Strategy;
 }

@@ -93,6 +93,10 @@ Shared primitives are in `app/components/` (themed wrappers, haptic tab, paralla
 
 > **Important:** Expo SDK 54 / Router v3 have breaking changes. **Do not rely on training-weight knowledge of Expo APIs — consult the versioned docs at https://docs.expo.dev/versions/v54.0.0/ before writing or modifying any Expo/React Native code.** Route param typings, screen configuration, and several core component APIs have changed.
 
+### UI/UX Design Guidelines (App)
+- **Mobile-First & Responsive**: Design primarily for mobile phones. Use Flexbox and responsive sizing strategies (safe areas, relative dimensions) to ensure the UI adapts gracefully to different screen sizes.
+- **Minimalist Interface (Giao diện tối giản)**: Keep the interface clean and clutter-free. Use generous whitespace, clear typography, and a restrained color palette (referencing `app/constants/theme.ts`). Focus on core data and actions without unnecessary decorative elements.
+
 ### Server workspace (`server/`)
 
 Standard NestJS module layout under `server/src/`:

@@ -49,3 +49,6 @@ dist/
 
 # Claude CLI
 .claude/settings.local.json
+
+# Docker
+postgres_data/

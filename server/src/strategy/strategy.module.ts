@@ -5,7 +5,9 @@ import { StrategyCondition } from './entities/strategy-condition.entity';
 import { BacktestRun } from './entities/backtest-run.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Strategy, StrategyCondition, BacktestRun])],
+  imports: [
+    TypeOrmModule.forFeature([Strategy, StrategyCondition, BacktestRun]),
+  ],
   exports: [TypeOrmModule],
 })
 export class StrategyModule {}
