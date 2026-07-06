@@ -2,10 +2,11 @@ import React from 'react';
 import {
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeView } from '@/components/safe-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
@@ -15,6 +16,7 @@ type StatSection = {
   id: string;
   title: string;
   description: string;
+  route: `/stats/${string}`;
 };
 
 const STAT_SECTIONS: StatSection[] = [
@@ -22,30 +24,54 @@ const STAT_SECTIONS: StatSection[] = [
     id: 'frequency',
     title: 'Tần suất xuất hiện',
     description: 'Thống kê tần suất xuất hiện của các số trong khoảng thời gian nhất định.',
+    route: '/stats/frequency',
   },
   {
     id: 'gan',
     title: 'Thống kê gan',
     description: 'Theo dõi số ngày gan của từng cặp số lô.',
+    route: '/stats/gan',
+  },
+  {
+    id: 'lo-roi',
+    title: 'Lô rơi',
+    description: 'Theo dõi các số lô tiếp tục xuất hiện từ đề hoặc lô ngày hôm trước.',
+    route: '/stats/lo-roi',
   },
   {
     id: 'head-tail',
     title: 'Đầu đuôi',
     description: 'Thống kê tần suất đầu và đuôi trong kết quả xổ số.',
+    route: '/stats/head-tail',
   },
   {
     id: 'pairs',
     title: 'Cặp số liên kết',
     description: 'Phân tích các cặp số thường xuất hiện cùng nhau.',
+    route: '/stats/pairs',
   },
   {
     id: 'heatmap',
     title: 'Bản đồ nhiệt',
     description: 'Trực quan hóa tần suất xuất hiện theo bản đồ nhiệt màu sắc.',
+    route: '/stats/heatmap',
+  },
+  {
+    id: 'analytics',
+    title: 'Phân tích & Dự báo',
+    description: 'Phân tích xu hướng, chu kỳ, tương quan và dự báo các số tiềm năng.',
+    route: '/stats/analytics',
+  },
+  {
+    id: 'ai-insight',
+    title: 'Phân tích AI',
+    description: 'Nhận báo cáo phân tích xu hướng và dự báo thông minh từ trợ lý AI.',
+    route: '/stats/ai-insight',
   },
 ];
 
 export default function StatsScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -53,16 +79,16 @@ export default function StatsScreen() {
   const cardBorder = colorScheme === 'dark' ? '#374151' : '#e5e7eb';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <ThemedView style={styles.header}>
-          <ThemedText type="title">Thống kê</ThemedText>
+          <ThemedText type="title">Thống kê & Phân tích</ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-            Phân tích dữ liệu xổ số
+            Phân tích dữ liệu và nhận định chuyên sâu
           </ThemedText>
         </ThemedView>
 
@@ -79,23 +105,24 @@ export default function StatsScreen() {
                 },
               ]}
               activeOpacity={0.7}
+              onPress={() => router.push(section.route)}
             >
               <View style={styles.cardContent}>
-                <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
-                  {section.title}
-                </ThemedText>
+                <View style={styles.cardHeaderRow}>
+                  <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+                    {section.title}
+                  </ThemedText>
+                  <ThemedText style={[styles.arrow, { color: colors.icon }]}>›</ThemedText>
+                </View>
                 <ThemedText style={[styles.cardDescription, { color: colors.icon }]}>
                   {section.description}
                 </ThemedText>
               </View>
-              <ThemedText style={[styles.comingSoon, { color: colors.tint }]}>
-                Sắp ra mắt
-              </ThemedText>
             </TouchableOpacity>
           ))}
         </ThemedView>
       </ScrollView>
-    </SafeAreaView>
+    </SafeView>
   );
 }
 
@@ -132,18 +159,24 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardContent: {
-    marginBottom: 12,
+    gap: 4,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   cardTitle: {
     fontSize: 17,
-    marginBottom: 8,
+    flex: 1,
   },
   cardDescription: {
     fontSize: 14,
     lineHeight: 22,
   },
-  comingSoon: {
-    fontSize: 13,
-    fontWeight: '600',
+  arrow: {
+    fontSize: 22,
+    fontWeight: '300',
   },
 });

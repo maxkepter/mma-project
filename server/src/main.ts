@@ -1,16 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { config as loadEnv } from 'dotenv';
-import { resolve } from 'path';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
-// Load environment variables from .env BEFORE importing AppModule
-// (important: AppModule may read env vars during module initialization)
-loadEnv({ path: resolve(__dirname, '..', '.env') });
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Get PORT from ConfigService (loaded by ConfigModule.forRoot() in AppModule)
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('PORT', 3000);
 
   // Enable CORS for mobile app and web clients
   app.enableCors({
@@ -26,8 +25,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalInterceptors(new LoggingInterceptor());
-  const port = Number(process.env.PORT) || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   console.log(`Server is running on http://localhost:${port}`);
 }

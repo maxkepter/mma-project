@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
@@ -21,6 +20,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '../../contexts/auth-context';
+import { SafeView } from '@/components/safe-view';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -346,7 +346,7 @@ export default function RegisterScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeView style={[styles.container, { backgroundColor: colors.background }]}>
       {Platform.OS === 'web' ? (
         formContent
       ) : (
@@ -401,7 +401,7 @@ export default function RegisterScreen() {
           </ThemedView>
         </View>
       </Modal>
-    </SafeAreaView>
+    </SafeView>
   );
 }
 
