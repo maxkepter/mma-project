@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,12 +11,15 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ActivityIndicator,
-  Alert,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '../../contexts/auth-context';
 
 export default function RegisterScreen() {
@@ -32,53 +35,135 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+
+  // Ref to track the auto-redirect timer so we can clear it on manual interaction
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Inline field errors
+  const [errors, setErrors] = useState<{
+    username: string;
+    email: string;
+    displayName: string;
+    password: string;
+    confirmPassword: string;
+    _server?: string;
+  }>({
+    username: '',
+    email: '',
+    displayName: '',
+    password: '',
+    confirmPassword: '',
+  });
+
+  // Manually close the success modal and navigate to /login (also cancel the timer)
+  const handleRedirectToLogin = useCallback(() => {
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+    setSuccessModalVisible(false);
+    router.replace('/login');
+  }, [router]);
+
+  // Schedule an auto-redirect to /login 3 seconds after the success modal appears.
+  // Cleans up the timer if the modal closes early or the screen unmounts.
+  useEffect(() => {
+    if (!successModalVisible) return;
+
+    redirectTimerRef.current = setTimeout(() => {
+      setSuccessModalVisible(false);
+      router.replace('/login');
+    }, 3000);
+
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
+  }, [successModalVisible, router]);
+
+  const validateForm = (): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const newErrors = {
+      username: '',
+      email: '',
+      displayName: '',
+      password: '',
+      confirmPassword: '',
+    };
+    let isValid = true;
+
+    if (!username.trim()) {
+      newErrors.username = 'Tên đăng nhập là bắt buộc.';
+      isValid = false;
+    } else if (username.trim().length < 3) {
+      newErrors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự.';
+      isValid = false;
+    }
+
+    if (!email.trim()) {
+      newErrors.email = 'Email là bắt buộc.';
+      isValid = false;
+    } else if (!emailRegex.test(email)) {
+      newErrors.email = 'Địa chỉ email không hợp lệ.';
+      isValid = false;
+    }
+
+    if (!displayName.trim()) {
+      newErrors.displayName = 'Tên hiển thị là bắt buộc.';
+      isValid = false;
+    } else if (displayName.trim().length < 2) {
+      newErrors.displayName = 'Tên hiển thị phải có ít nhất 2 ký tự.';
+      isValid = false;
+    }
+
+    if (!password) {
+      newErrors.password = 'Mật khẩu là bắt buộc.';
+      isValid = false;
+    } else if (password.length < 6) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự.';
+      isValid = false;
+    }
+
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu.';
+      isValid = false;
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Mật khẩu xác nhận không trùng khớp.';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
 
   const handleRegister = async () => {
-    // Validate required fields
-    if (!username.trim() || !email.trim() || !displayName.trim() || !password.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ các trường thông tin.');
-      return;
-    }
-
-    // Check password match
-    if (password !== confirmPassword) {
-      Alert.alert('Lỗi', 'Mật khẩu xác nhận không trùng khớp.');
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Lỗi', 'Địa chỉ email không hợp lệ.');
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
       await register(username, email, displayName, password);
       setLoading(false);
-      Alert.alert(
-        'Thành công',
-        'Đăng ký tài khoản thành công! Vui lòng đăng nhập.',
-        [{ text: 'OK', onPress: () => router.replace('/login') }]
-      );
+      setSuccessModalVisible(true);
     } catch (error: any) {
       setLoading(false);
-      Alert.alert('Lỗi', error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      // Show server error inline at the top of the form
+      const serverMessage =
+        error?.response?.data?.message?.[0] ||
+        error?.message ||
+        'Đăng ký thất bại. Vui lòng thử lại.';
+      setErrors((prev) => ({ ...prev, _server: serverMessage }));
     }
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-          >
+  const formContent = (
+    <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
             {/* Header */}
             <View style={styles.headerContainer}>
               <Text style={[styles.title, { color: colors.text }]}>Tạo Tài Khoản</Text>
@@ -89,6 +174,13 @@ export default function RegisterScreen() {
 
             {/* Form */}
             <View style={styles.formContainer}>
+              {/* Server error banner */}
+              {errors._server ? (
+                <View style={styles.serverErrorBanner}>
+                  <Text style={styles.serverErrorText}>{errors._server}</Text>
+                </View>
+              ) : null}
+
               {/* Username */}
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: colors.text }]}>Tên đăng nhập *</Text>
@@ -96,7 +188,7 @@ export default function RegisterScreen() {
                   style={[
                     styles.input,
                     {
-                      borderColor: colors.icon,
+                      borderColor: errors.username ? '#e74c3c' : colors.icon,
                       color: colors.text,
                       backgroundColor: colorScheme === 'dark' ? '#1f2223' : '#f5f5f5',
                     },
@@ -104,10 +196,16 @@ export default function RegisterScreen() {
                   placeholder="Nhập tên đăng nhập (duy nhất)"
                   placeholderTextColor={colors.icon}
                   value={username}
-                  onChangeText={setUsername}
+                  onChangeText={(text) => {
+                    setUsername(text);
+                    if (errors.username) setErrors((p) => ({ ...p, username: '' }));
+                  }}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                {errors.username ? (
+                  <Text style={styles.fieldError}>{errors.username}</Text>
+                ) : null}
               </View>
 
               {/* Email */}
@@ -117,7 +215,7 @@ export default function RegisterScreen() {
                   style={[
                     styles.input,
                     {
-                      borderColor: colors.icon,
+                      borderColor: errors.email ? '#e74c3c' : colors.icon,
                       color: colors.text,
                       backgroundColor: colorScheme === 'dark' ? '#1f2223' : '#f5f5f5',
                     },
@@ -125,11 +223,17 @@ export default function RegisterScreen() {
                   placeholder="Nhập địa chỉ email"
                   placeholderTextColor={colors.icon}
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (errors.email) setErrors((p) => ({ ...p, email: '' }));
+                  }}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                {errors.email ? (
+                  <Text style={styles.fieldError}>{errors.email}</Text>
+                ) : null}
               </View>
 
               {/* Display Name */}
@@ -139,7 +243,7 @@ export default function RegisterScreen() {
                   style={[
                     styles.input,
                     {
-                      borderColor: colors.icon,
+                      borderColor: errors.displayName ? '#e74c3c' : colors.icon,
                       color: colors.text,
                       backgroundColor: colorScheme === 'dark' ? '#1f2223' : '#f5f5f5',
                     },
@@ -147,8 +251,14 @@ export default function RegisterScreen() {
                   placeholder="Nhập tên hiển thị của bạn"
                   placeholderTextColor={colors.icon}
                   value={displayName}
-                  onChangeText={setDisplayName}
+                  onChangeText={(text) => {
+                    setDisplayName(text);
+                    if (errors.displayName) setErrors((p) => ({ ...p, displayName: '' }));
+                  }}
                 />
+                {errors.displayName ? (
+                  <Text style={styles.fieldError}>{errors.displayName}</Text>
+                ) : null}
               </View>
 
               {/* Password */}
@@ -158,19 +268,25 @@ export default function RegisterScreen() {
                   style={[
                     styles.input,
                     {
-                      borderColor: colors.icon,
+                      borderColor: errors.password ? '#e74c3c' : colors.icon,
                       color: colors.text,
                       backgroundColor: colorScheme === 'dark' ? '#1f2223' : '#f5f5f5',
                     },
                   ]}
-                  placeholder="Nhập mật khẩu"
+                  placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
                   placeholderTextColor={colors.icon}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errors.password) setErrors((p) => ({ ...p, password: '' }));
+                  }}
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                {errors.password ? (
+                  <Text style={styles.fieldError}>{errors.password}</Text>
+                ) : null}
               </View>
 
               {/* Confirm Password */}
@@ -180,7 +296,7 @@ export default function RegisterScreen() {
                   style={[
                     styles.input,
                     {
-                      borderColor: colors.icon,
+                      borderColor: errors.confirmPassword ? '#e74c3c' : colors.icon,
                       color: colors.text,
                       backgroundColor: colorScheme === 'dark' ? '#1f2223' : '#f5f5f5',
                     },
@@ -188,11 +304,17 @@ export default function RegisterScreen() {
                   placeholder="Nhập lại mật khẩu"
                   placeholderTextColor={colors.icon}
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    if (errors.confirmPassword) setErrors((p) => ({ ...p, confirmPassword: '' }));
+                  }}
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                {errors.confirmPassword ? (
+                  <Text style={styles.fieldError}>{errors.confirmPassword}</Text>
+                ) : null}
               </View>
 
               {/* Register Button */}
@@ -221,8 +343,64 @@ export default function RegisterScreen() {
               </Link>
             </View>
           </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {Platform.OS === 'web' ? (
+        formContent
+      ) : (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            {formContent}
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* Success Modal */}
+      <Modal
+        visible={successModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleRedirectToLogin}
+      >
+        <View style={styles.modalOverlay}>
+          <ThemedView
+            style={styles.modalContent}
+            lightColor="#ffffff"
+            darkColor="#1f2223"
+          >
+            <View style={styles.iconContainer}>
+              <MaterialIcons name="check-circle" size={64} color="#2ecc71" />
+            </View>
+            <ThemedText style={styles.modalTitle} type="subtitle">
+              Đăng ký thành công!
+            </ThemedText>
+            <ThemedText style={styles.modalMessage}>
+              Tài khoản của bạn đã được tạo thành công. Hệ thống sẽ tự động chuyển
+              hướng đến trang đăng nhập sau 3 giây.
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: colors.tint }]}
+              onPress={handleRedirectToLogin}
+            >
+              <Text
+                style={[
+                  styles.modalButtonText,
+                  {
+                    color: colorScheme === 'dark' ? '#151718' : '#fff',
+                  },
+                ]}
+              >
+                Đăng nhập ngay
+              </Text>
+            </TouchableOpacity>
+          </ThemedView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -271,6 +449,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
   },
+  serverErrorBanner: {
+    backgroundColor: '#fdecea',
+    borderColor: '#e74c3c',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  serverErrorText: {
+    color: '#c0392b',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  fieldError: {
+    color: '#e74c3c',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+  },
   button: {
     height: 50,
     borderRadius: 8,
@@ -303,6 +500,55 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '90%',
+    maxWidth: 340,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  iconContainer: {
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    opacity: 0.8,
+  },
+  modalButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

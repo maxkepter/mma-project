@@ -11,15 +11,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '../../contexts/auth-context';
 
 export default function LoginScreen() {
-  const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const { login } = useAuth();
@@ -27,12 +25,35 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{
+    username: string;
+    password: string;
+    _server?: string;
+  }>({ username: '', password: '' });
+
+  const validateForm = (): boolean => {
+    const newErrors = { username: '', password: '' };
+    let isValid = true;
+
+    if (!username.trim()) {
+      newErrors.username = 'Tên đăng nhập là bắt buộc.';
+      isValid = false;
+    }
+
+    if (!password) {
+      newErrors.password = 'Mật khẩu là bắt buộc.';
+      isValid = false;
+    } else if (password.length < 6) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự.';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
 
   const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ tên đăng nhập và mật khẩu.');
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -40,18 +61,16 @@ export default function LoginScreen() {
       // Navigation to /(tabs) will be handled automatically by the auth guard in _layout.tsx
     } catch (error: any) {
       setLoading(false);
-      Alert.alert('Lỗi', error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      const serverMessage =
+        error?.response?.data?.message?.[0] ||
+        error?.message ||
+        'Đăng nhập thất bại. Vui lòng thử lại.';
+      setErrors((prev) => ({ ...prev, _server: serverMessage }));
     }
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.innerContainer}>
+  const formContent = (
+    <View style={styles.innerContainer}>
             {/* Header / Logo */}
             <View style={styles.headerContainer}>
               <Text style={[styles.title, { color: colors.text }]}>Đăng Nhập</Text>
@@ -62,13 +81,19 @@ export default function LoginScreen() {
 
             {/* Form Inputs */}
             <View style={styles.formContainer}>
+              {errors._server ? (
+                <View style={styles.serverErrorBanner}>
+                  <Text style={styles.serverErrorText}>{errors._server}</Text>
+                </View>
+              ) : null}
+
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: colors.text }]}>Tên đăng nhập</Text>
                 <TextInput
                   style={[
                     styles.input,
                     {
-                      borderColor: colors.icon,
+                      borderColor: errors.username ? '#e74c3c' : colors.icon,
                       color: colors.text,
                       backgroundColor: colorScheme === 'dark' ? '#1f2223' : '#f5f5f5',
                     },
@@ -76,10 +101,17 @@ export default function LoginScreen() {
                   placeholder="Nhập tên đăng nhập"
                   placeholderTextColor={colors.icon}
                   value={username}
-                  onChangeText={setUsername}
+                  onChangeText={(text) => {
+                    setUsername(text);
+                    if (errors.username) setErrors((p) => ({ ...p, username: '' }));
+                    if (errors._server) setErrors((p) => ({ ...p, _server: undefined }));
+                  }}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                {errors.username ? (
+                  <Text style={styles.fieldError}>{errors.username}</Text>
+                ) : null}
               </View>
 
               <View style={styles.inputGroup}>
@@ -88,19 +120,26 @@ export default function LoginScreen() {
                   style={[
                     styles.input,
                     {
-                      borderColor: colors.icon,
+                      borderColor: errors.password ? '#e74c3c' : colors.icon,
                       color: colors.text,
                       backgroundColor: colorScheme === 'dark' ? '#1f2223' : '#f5f5f5',
                     },
                   ]}
-                  placeholder="Nhập mật khẩu"
+                  placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
                   placeholderTextColor={colors.icon}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errors.password) setErrors((p) => ({ ...p, password: '' }));
+                    if (errors._server) setErrors((p) => ({ ...p, _server: undefined }));
+                  }}
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                {errors.password ? (
+                  <Text style={styles.fieldError}>{errors.password}</Text>
+                ) : null}
               </View>
 
               {/* Login Button */}
@@ -129,8 +168,22 @@ export default function LoginScreen() {
               </Link>
             </View>
           </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {Platform.OS === 'web' ? (
+        formContent
+      ) : (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            {formContent}
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }
@@ -176,6 +229,25 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 16,
+  },
+  serverErrorBanner: {
+    backgroundColor: '#fdecea',
+    borderColor: '#e74c3c',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  serverErrorText: {
+    color: '#c0392b',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  fieldError: {
+    color: '#e74c3c',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
   },
   button: {
     height: 50,

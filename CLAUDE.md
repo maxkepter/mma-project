@@ -101,6 +101,7 @@ Shared primitives are in `app/components/` (themed wrappers, haptic tab, paralla
 
 - **Mobile-First & Responsive**: Design primarily for mobile phones. Use Flexbox and responsive sizing strategies (safe areas, relative dimensions) to ensure the UI adapts gracefully to different screen sizes.
 - **Minimalist Interface (Giao diện tối giản)**: Keep the interface clean and clutter-free. Use generous whitespace, clear typography, and a restrained color palette (referencing `app/constants/theme.ts`). Focus on core data and actions without unnecessary decorative elements.
+- **Safe Area**: All screens **must** use a safe area wrapper (e.g., `<SafeAreaView>` from `react-native` or a custom `SafeView` component) to handle device notches, status bars, and navigation bars correctly on all platforms.
 
 ### Server workspace (`server/`)
 

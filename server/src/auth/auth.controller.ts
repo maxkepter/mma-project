@@ -5,6 +5,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import type { JwtPayload } from './auth.types';
 
 @Controller('auth')
 export class AuthController {
@@ -33,7 +34,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(@CurrentUser() user: any) {
+  logout(@CurrentUser() user: JwtPayload) {
     return this.authService.logout(user.sub);
   }
 }

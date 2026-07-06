@@ -6,9 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const chunks=[]; process.stdin.on('data', d=>chunks.push(d)); process.stdin.on('end', ()=>{ const i=JSON.parse(chunks.join('').replace(/^﻿/,'')); const f=(i.tool_input||{}).file_path||(i.tool_response||{}).filePath||''; if(/\\.(ts|tsx|js|jsx)$/.test(f)){ const {execSync}=require('child_process'); try { console.log('Running lint...'); execSync('npm run lint', {stdio:'inherit'}); console.log('Running build...'); execSync('npm run build', {stdio:'inherit'}); } catch(e){ process.exit(1); } } });\"",
+            "command": "node -e \"const chunks=[]; process.stdin.on('data', d=>chunks.push(d)); process.stdin.on('end', ()=>{ const i=JSON.parse(chunks.join('').replace(/^﻿/,'')); const f=(i.tool_input||{}).file_path||(i.tool_response||{}).filePath||''; if(/\\.(ts|tsx|js|jsx)$/.test(f)){ const {execSync}=require('child_process'); try { if(f.includes('server/')){ console.log('[HOOK] Detected server change - running lint, build, test...'); execSync('npm run server:lint', {stdio:'inherit'}); execSync('npm run server:build', {stdio:'inherit'}); execSync('npm run test', {stdio:'inherit'}); } else if(f.includes('app/')){ console.log('[HOOK] Detected app change - running lint, build...'); execSync('npm run app:lint', {stdio:'inherit'}); execSync('npm run app:build', {stdio:'inherit'}); } else { console.log('[HOOK] Running global lint, build, test...'); execSync('npm run lint', {stdio:'inherit'}); execSync('npm run build', {stdio:'inherit'}); execSync('npm run test', {stdio:'inherit'}); } } catch(e){ process.exit(1); } } });\"",
             "timeout": 600,
-            "statusMessage": "Running lint and build..."
+            "statusMessage": "Running lint, build and tests..."
           }
         ]
       }

@@ -3,7 +3,9 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { RefreshToken } from '../../auth/entities/refresh-token.entity';
 
 @Entity('users')
 export class User {
@@ -22,13 +24,9 @@ export class User {
   @Column()
   displayName!: string;
 
-  @Column({
-    name: 'current_hashed_refresh_token',
-    nullable: true,
-    type: 'text',
-  })
-  currentHashedRefreshToken?: string;
-
   @CreateDateColumn()
   createAt!: Date;
+
+  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
+  refreshTokens!: RefreshToken[];
 }

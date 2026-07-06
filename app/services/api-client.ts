@@ -1,25 +1,31 @@
-import axios from 'axios';
-import Constants from 'expo-constants';
-import { TokenStorage } from './token-storage';
+import axios from "axios";
+import { Platform } from "react-native";
+import { TokenStorage } from "./token-storage";
 
 // Get API URL from environment variables or use sensible defaults
 const getBaseUrl = () => {
-  // Check for explicit env var first (EXPO_PUBLIC_ prefix is required for Expo to expose vars)
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+  const port = process.env.EXPO_API_PORT || "3618";
+
+  // Explicit host override (provide host only, port is appended automatically)
+  if (process.env.EXPO_PUBLIC_API_URL && process.env.EXPO_PUBLIC_API_URL.length > 0) {
+    const host = process.env.EXPO_PUBLIC_API_URL;
+    return `${host}:${port}`;
   }
 
-  // Fallback: dynamically detect dev machine IP
-  const hostUri = Constants.expoConfig?.hostUri;
-  const host = hostUri ? hostUri.split(':')[0] : 'localhost';
-  const port = process.env.EXPO_API_PORT || '3000';
-  return `http://${host}:${port}`;
+  // Android emulator reaches the host machine via 10.0.2.2 (not localhost)
+  if (Platform.OS === "android") {
+    return `http://10.0.2.2:${port}`;
+  }
+
+  // iOS simulator and web can reach the host via localhost
+  // For physical iOS devices on the same LAN, set EXPO_PUBLIC_API_URL instead
+  return `http://localhost:${port}`;
 };
 
 const apiClient = axios.create({
   baseURL: getBaseUrl(),
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   timeout: 10000,
 });
@@ -64,7 +70,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('[API Request Error]', error);
+    console.error("[API Request Error]", error);
     return Promise.reject(error);
   },
 );
@@ -78,17 +84,20 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error) => {
-    console.error(`[API Error] ${error.response?.status || 'Network'} ${error.config?.url}`, {
-      message: error.message,
-      data: error.response?.data,
-    });
+    console.error(
+      `[API Error] ${error.response?.status || "Network"} ${error.config?.url}`,
+      {
+        message: error.message,
+        data: error.response?.data,
+      },
+    );
     const originalRequest = error.config;
 
     // Avoid infinite loop if the refresh endpoint itself returns 401, or if request has already been retried
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/refresh')
+      !originalRequest.url?.includes("/auth/refresh")
     ) {
       if (isRefreshing) {
         // Queue this request and wait for the refresh process to complete
@@ -108,24 +117,30 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = await TokenStorage.getRefreshToken();
         if (!refreshToken) {
-          throw new Error('No refresh token available');
+          throw new Error("No refresh token available");
         }
 
         // Call the refresh endpoint
-        const response = await axios.post(`${getBaseUrl()}/auth/refresh`, {
-          refreshToken,
-        }, {
-          headers: { 'Content-Type': 'application/json' },
-        });
+        const response = await axios.post(
+          `${getBaseUrl()}/auth/refresh`,
+          {
+            refreshToken,
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+          },
+        );
 
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+          response.data;
 
         // Save new tokens
         await TokenStorage.setAccessToken(newAccessToken);
         await TokenStorage.setRefreshToken(newRefreshToken);
 
         // Update authorization header
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+        apiClient.defaults.headers.common["Authorization"] =
+          `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         // Resolve queued requests

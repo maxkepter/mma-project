@@ -64,7 +64,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(profile);
       setIsAuthenticated(true);
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Login failed';
+      // Handle network errors (server not running)
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        throw new Error('Không thể kết nối đến server. Vui lòng đảm bảo server đang chạy.');
+      }
+      const message = error.response?.data?.message || 'Đăng nhập thất bại';
       throw new Error(message);
     }
   };
@@ -73,7 +77,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await apiClient.post('/auth/register', { username, email, displayName, password });
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Registration failed';
+      // Handle network errors (server not running)
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        throw new Error('Không thể kết nối đến server. Vui lòng đảm bảo server đang chạy.');
+      }
+      const message = error.response?.data?.message || 'Đăng ký thất bại';
       throw new Error(message);
     }
   };
