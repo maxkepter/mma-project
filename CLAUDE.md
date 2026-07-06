@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an **npm workspaces monorepo** for a Vietnamese lottery analysis system ("Hệ thống phân tích xổ số"). It consists of two workspaces:
+This is an **npm workspaces monorepo** for a Vietnamese lottery analysis system ("Hệ thống phân tích xổ số"). It consists of three workspaces:
 
 - `app/` — Expo 54 mobile app (React Native + Expo Router v3, TypeScript)
 - `server/` — NestJS 11 backend (TypeScript, Jest)
+- `ai/` — Python FastAPI AI service (Python 3.11+)
 
 ## Commands
 
@@ -16,7 +17,8 @@ Run all commands from the **monorepo root** unless working exclusively inside a 
 ### Install
 
 ```bash
-npm install
+npm install          # Install Node.js dependencies (app + server)
+pip install -r ai/requirements.txt  # Install AI Python dependencies
 ```
 
 ### Development
@@ -25,6 +27,7 @@ npm install
 npm run dev           # Run both app and server concurrently
 npm run app:dev       # Expo app only (expo start)
 npm run server:dev    # NestJS server only (nest start --watch)
+npm run ai:dev        # AI Python server only (fastapi)
 ```
 
 ### Build

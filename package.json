@@ -20,6 +20,7 @@
     "server:lint": "cd server && npm run lint",
     "server:test": "cd server && npm run test",
     "server:test:e2e": "cd server && npm run test:e2e",
+    "ai:dev": "cd ai && python main.py",
     "dev": "npm run server:dev & npm run app:dev",
     "build": "npm run server:build && npm run app:build",
     "lint": "npm run app:lint && npm run server:lint",
