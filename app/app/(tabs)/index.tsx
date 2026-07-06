@@ -6,7 +6,7 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeView } from '@/components/safe-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -44,6 +44,7 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const { user } = useAuth();
+  const router = useRouter();
 
   const [insights, setInsights] = useState<AIInsightItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(last7Days[0]);
@@ -281,6 +282,7 @@ export default function HomeScreen() {
                   borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
                 },
               ]}
+              onPress={() => router.push('/strategy' as any)}
             >
               <IconSymbol name="chevron.right" size={32} color={colors.tint} />
               <ThemedText style={styles.actionLabel}>Chiến lược</ThemedText>
