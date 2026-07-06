@@ -30,18 +30,9 @@ classDiagram
             +isExpired(): boolean
         }
 
-        class AccessTokenPayload {
-            <<ValueObject>>
-            -userId: uuid
-            -username: string
-            -displayName: string
-            -email: string
-        }
     }
 
     User "1" *-- "*" RefreshToken : owns
-    AccessTokenPayload .. RefreshToken : used by
-
     namespace CoreData {
         class LotteryResult {
             -id: uuid
