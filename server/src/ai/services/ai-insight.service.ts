@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Cron } from '@nestjs/schedule';
 import { AIInsight } from '../entities/ai-insight.entity';
 import { StatisticsService } from '../../statistics/statistics.service';
 import { AnalyticsService } from '../../analytics/analytics.service';
@@ -16,6 +17,7 @@ export interface AIInsightResponse {
   content: string;
   confidenceScore: number;
   createdAt: Date;
+  targetDate?: string;
 }
 
 @Injectable()
@@ -62,12 +64,14 @@ export class AIInsightService {
       confidence: p.confidence,
     }));
 
+    const targetDate = dto.targetDate ?? new Date().toISOString().split('T')[0];
+
     // Build prompt payload
     const payload = {
       hotNumbers,
       overdueNumbers,
       predictions: topPredictions,
-      targetDate: dto.targetDate ?? new Date().toISOString().split('T')[0],
+      targetDate,
     };
 
     let content = '';
@@ -102,6 +106,7 @@ export class AIInsightService {
     const insight = this.insightRepo.create({
       content,
       confidenceScore,
+      targetDate,
     });
     const saved = await this.insightRepo.save(insight);
 
@@ -110,6 +115,7 @@ export class AIInsightService {
       content: saved.content,
       confidenceScore: saved.confidenceScore,
       createdAt: saved.createdAt,
+      targetDate: saved.targetDate,
     };
   }
 
@@ -123,6 +129,7 @@ export class AIInsightService {
       content: i.content,
       confidenceScore: i.confidenceScore,
       createdAt: i.createdAt,
+      targetDate: i.targetDate,
     }));
   }
 
@@ -137,7 +144,31 @@ export class AIInsightService {
       content: insight.content,
       confidenceScore: insight.confidenceScore,
       createdAt: insight.createdAt,
+      targetDate: insight.targetDate,
     };
+  }
+
+  async getDailyInsights(days: number = 7): Promise<AIInsightResponse[]> {
+    const insights = await this.insightRepo.find({
+      order: { targetDate: 'DESC', createdAt: 'DESC' },
+      take: days,
+    });
+    return insights.map((i) => ({
+      id: i.id,
+      content: i.content,
+      confidenceScore: i.confidenceScore,
+      createdAt: i.createdAt,
+      targetDate: i.targetDate,
+    }));
+  }
+
+  @Cron('0 19 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  async handleDailyInsightCron() {
+    const target = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+    );
+    const today = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+    await this.generateInsight({ targetDate: today });
   }
 
   private generateFallbackInsight(payload: {

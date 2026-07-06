@@ -62,12 +62,6 @@ const STAT_SECTIONS: StatSection[] = [
     description: 'Phân tích xu hướng, chu kỳ, tương quan và dự báo các số tiềm năng.',
     route: '/stats/analytics',
   },
-  {
-    id: 'ai-insight',
-    title: 'Phân tích AI',
-    description: 'Nhận báo cáo phân tích xu hướng và dự báo thông minh từ trợ lý AI.',
-    route: '/stats/ai-insight',
-  },
 ];
 
 export default function StatsScreen() {

@@ -5,17 +5,10 @@ export interface AIInsightItem {
   content: string;
   confidenceScore: number;
   createdAt: string;
+  targetDate?: string;
 }
 
 export const aiInsightApi = {
-  generate(targetDate?: string) {
-    return apiClient.post<AIInsightItem>(
-      "/ai/insights/generate",
-      undefined,
-      { params: targetDate ? { targetDate } : {} },
-    );
-  },
-
   getInsights(limit: number = 10) {
     return apiClient.get<AIInsightItem[]>("/ai/insights", {
       params: { limit },
@@ -24,5 +17,9 @@ export const aiInsightApi = {
 
   getLatestInsight() {
     return apiClient.get<AIInsightItem | null>("/ai/insights/latest");
+  },
+
+  getDailyInsights() {
+    return apiClient.get<AIInsightItem[]>("/ai/insights/daily");
   },
 };
