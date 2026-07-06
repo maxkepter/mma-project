@@ -127,8 +127,9 @@ export class AIInsightService {
   }
 
   async getLatestInsight(): Promise<AIInsightResponse | null> {
-    const insight = await this.insightRepo.findOne({
+    const [insight] = await this.insightRepo.find({
       order: { createdAt: 'DESC' },
+      take: 1,
     });
     if (!insight) return null;
     return {
