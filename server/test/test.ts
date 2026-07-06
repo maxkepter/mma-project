@@ -1,4 +1,4 @@
-import { DataService } from "../src/jobs/data.processor";
+import { DataService } from '../src/jobs/data.processor';
 
 async function run() {
   const service = new DataService();
@@ -6,9 +6,9 @@ async function run() {
   const data = await service.getXsmbData();
 
   await service.dailyUpdate();
-  console.log("DATA LENGTH:", data.length);
+  console.log('DATA LENGTH:', data.length);
   console.log(
-    "SAMPLE:",
+    'SAMPLE:',
     data.slice(0, 5).map((d) => ({
       date: d.date,
       special: d.special,

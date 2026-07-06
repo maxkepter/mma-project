@@ -1,16 +1,16 @@
-import * as fs from "fs";
-import * as path from "path";
-import { LotteryResult } from "../identity/types/LotteryResult";
+import * as fs from 'fs';
+import * as path from 'path';
+import { LotteryResult } from '../identity/types/LotteryResult';
 
 export class DataDownloader {
   private readonly XSMB_URL =
-    "https://raw.githubusercontent.com/khiemdoan/vietnam-lottery-xsmb-analysis/refs/heads/main/data/xsmb.json";
+    'https://raw.githubusercontent.com/khiemdoan/vietnam-lottery-xsmb-analysis/refs/heads/main/data/xsmb.json';
   private readonly XSMB_2_DIGITS_URL =
-    "https://raw.githubusercontent.com/khiemdoan/vietnam-lottery-xsmb-analysis/refs/heads/main/data/xsmb-2-digits.json";
+    'https://raw.githubusercontent.com/khiemdoan/vietnam-lottery-xsmb-analysis/refs/heads/main/data/xsmb-2-digits.json';
 
-  private readonly FILE_PATH = path.join(process.cwd(), "src", "data", "raw");
-  private readonly XSMB = "xsmb.json";
-  private readonly XSMB_2_DIGITS = "xsmb-2-digits.json";
+  private readonly FILE_PATH = path.join(process.cwd(), 'src', 'data', 'raw');
+  private readonly XSMB = 'xsmb.json';
+  private readonly XSMB_2_DIGITS = 'xsmb-2-digits.json';
 
   private readonly XSMB_DIR = path.join(this.FILE_PATH, this.XSMB);
   private readonly XSMB_2_DIGITS_DIR = path.join(
@@ -33,7 +33,7 @@ export class DataDownloader {
   }
 
   async download(): Promise<void> {
-    console.log("Downloading JSON...");
+    console.log('Downloading JSON...');
 
     const res_xsmb = await fetch(this.XSMB_URL);
     const res_xsmb_2_digits = await fetch(this.XSMB_2_DIGITS_URL);
@@ -58,20 +58,20 @@ export class DataDownloader {
     fs.writeFileSync(
       this.XSMB_DIR,
       JSON.stringify(data_xsmb, null, 2),
-      "utf-8",
+      'utf-8',
     );
     fs.writeFileSync(
       this.XSMB_2_DIGITS_DIR,
       JSON.stringify(data_xsmb_2_digits, null, 2),
-      "utf-8",
+      'utf-8',
     );
 
-    console.log("✅ JSON saved");
+    console.log('✅ JSON saved');
   }
 
   async ensureFile(): Promise<void> {
     if (!this.fileExists()) {
-      console.log("⚠️ JSON not found → downloading...");
+      console.log('⚠️ JSON not found → downloading...');
       await this.download();
     }
   }

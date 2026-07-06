@@ -2,10 +2,10 @@ import React from 'react';
 import {
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeView } from '@/components/safe-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -27,7 +27,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -143,7 +143,7 @@ export default function HomeScreen() {
           </View>
         </ThemedView>
       </ScrollView>
-    </SafeAreaView>
+    </SafeView>
   );
 }
 

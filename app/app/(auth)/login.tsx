@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
@@ -16,6 +15,7 @@ import { Link } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '../../contexts/auth-context';
+import { SafeView } from '@/components/safe-view';
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -171,7 +171,7 @@ export default function LoginScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeView style={[styles.container, { backgroundColor: colors.background }]}>
       {Platform.OS === 'web' ? (
         formContent
       ) : (
@@ -184,7 +184,7 @@ export default function LoginScreen() {
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       )}
-    </SafeAreaView>
+    </SafeView>
   );
 }
 

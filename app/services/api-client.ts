@@ -1,19 +1,26 @@
-import axios from "axios";
-import { Platform } from "react-native";
-import { TokenStorage } from "./token-storage";
+import axios from 'axios';
+import { Platform } from 'react-native';
+import { TokenStorage } from './token-storage';
 
 // Get API URL from environment variables or use sensible defaults
 const getBaseUrl = () => {
-  const port = process.env.EXPO_API_PORT || "3618";
+  const port = process.env.EXPO_API_PORT || '3618';
 
   // Explicit host override (provide host only, port is appended automatically)
-  if (process.env.EXPO_PUBLIC_API_URL && process.env.EXPO_PUBLIC_API_URL.length > 0) {
+  if (
+    process.env.EXPO_PUBLIC_API_URL &&
+    process.env.EXPO_PUBLIC_API_URL.length > 0
+  ) {
     const host = process.env.EXPO_PUBLIC_API_URL;
     return `${host}:${port}`;
   }
 
+  console.log(
+    `[API Client] Using default base URL for platform ${Platform.OS} and port ${port}`,
+  );
+
   // Android emulator reaches the host machine via 10.0.2.2 (not localhost)
-  if (Platform.OS === "android") {
+  if (Platform.OS === 'android') {
     return `http://10.0.2.2:${port}`;
   }
 
@@ -25,7 +32,7 @@ const getBaseUrl = () => {
 const apiClient = axios.create({
   baseURL: getBaseUrl(),
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
   timeout: 10000,
 });
@@ -70,7 +77,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error("[API Request Error]", error);
+    console.error('[API Request Error]', error);
     return Promise.reject(error);
   },
 );
@@ -85,7 +92,7 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     console.error(
-      `[API Error] ${error.response?.status || "Network"} ${error.config?.url}`,
+      `[API Error] ${error.response?.status || 'Network'} ${error.config?.url}`,
       {
         message: error.message,
         data: error.response?.data,
@@ -97,7 +104,7 @@ apiClient.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes("/auth/refresh")
+      !originalRequest.url?.includes('/auth/refresh')
     ) {
       if (isRefreshing) {
         // Queue this request and wait for the refresh process to complete
@@ -117,7 +124,7 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = await TokenStorage.getRefreshToken();
         if (!refreshToken) {
-          throw new Error("No refresh token available");
+          throw new Error('No refresh token available');
         }
 
         // Call the refresh endpoint
@@ -127,7 +134,7 @@ apiClient.interceptors.response.use(
             refreshToken,
           },
           {
-            headers: { "Content-Type": "application/json" },
+            headers: { 'Content-Type': 'application/json' },
           },
         );
 
@@ -139,7 +146,7 @@ apiClient.interceptors.response.use(
         await TokenStorage.setRefreshToken(newRefreshToken);
 
         // Update authorization header
-        apiClient.defaults.headers.common["Authorization"] =
+        apiClient.defaults.headers.common['Authorization'] =
           `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
