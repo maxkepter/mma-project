@@ -19,6 +19,12 @@ export class BacktestRun {
   @Column({ type: 'float', default: 0 })
   profit!: number;
 
+  @Column({ default: false })
+  saved!: boolean;
+
+  @Column({ nullable: true })
+  name?: string;
+
   @Column(() => BacktestResult)
   result!: BacktestResult;
 

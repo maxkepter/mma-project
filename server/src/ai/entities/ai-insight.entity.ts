@@ -16,6 +16,9 @@ export class AIInsight {
   @Column({ type: 'float' })
   confidenceScore!: number;
 
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  targetDate?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 }

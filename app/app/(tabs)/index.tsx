@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   View,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeView } from '@/components/safe-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -12,11 +15,91 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/auth-context';
+import { aiInsightApi, AIInsightItem } from '@/services/ai-insight-api';
+
+const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE === 'true';
+
+const isSameCalendarDay = (date1: Date, date2Str: string) => {
+  const date2 = new Date(date2Str);
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+};
+
+const getDayLabel = (d: Date) => {
+  const today = new Date();
+  const date1Str = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const date2Str = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (date1Str === date2Str) return 'Hôm nay';
+  const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  return `${days[d.getDay()]}\n${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const last7Days = Array.from({ length: 7 }, (_, i) => {
+  const d = new Date();
+  d.setDate(d.getDate() - i);
+  return d;
+});
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const { user } = useAuth();
+  const router = useRouter();
+
+  const [insights, setInsights] = useState<AIInsightItem[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(last7Days[0]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchInsights = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await aiInsightApi.getDailyInsights();
+      setInsights(res.data);
+    } catch (err: any) {
+      setError(err.message || 'Tải phân tích thất bại');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchInsights();
+    }, []),
+  );
+
+  const handleGenerateInsight = async () => {
+    setGenerating(true);
+    try {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      await aiInsightApi.generateInsight({ targetDate: dateStr });
+      await fetchInsights();
+      Alert.alert('Thành công', 'Đã tạo insight mới');
+    } catch (err: any) {
+      Alert.alert('Lỗi', err.message || 'Tạo insight thất bại');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const selectedInsight = insights.find((item) => {
+    if (item.targetDate) {
+      const date2 = new Date(item.targetDate);
+      return (
+        selectedDate.getFullYear() === date2.getFullYear() &&
+        selectedDate.getMonth() === date2.getMonth() &&
+        selectedDate.getDate() === date2.getDate()
+      );
+    }
+    return isSameCalendarDay(selectedDate, item.createdAt);
+  });
 
   // Mock lottery result data
   const latestResult = {
@@ -27,7 +110,9 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -83,6 +168,132 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </ThemedView>
 
+        {/* Investment Suggestions  */}
+        <ThemedView style={styles.section}>
+          <ThemedView style={styles.sectionTitleRow}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Phân tích hôm nay
+            </ThemedText>
+            {DEV_MODE && (
+              <TouchableOpacity
+                style={[styles.generateButton, { backgroundColor: colors.tint }]}
+                onPress={handleGenerateInsight}
+                disabled={generating}
+              >
+                {generating ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <ThemedText style={styles.generateButtonText}>+ Gen Insight</ThemedText>
+                )}
+              </TouchableOpacity>
+            )}
+          </ThemedView>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dateSelectorScroll}
+          >
+            {last7Days.map((date, index) => {
+              const date1Str = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+              const date2Str = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+              const isSelected = date1Str === date2Str;
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dateButton,
+                    isSelected
+                      ? {
+                          backgroundColor: colors.tint,
+                          borderColor: colors.tint,
+                        }
+                      : {
+                          backgroundColor:
+                            colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
+                          borderColor:
+                            colorScheme === 'dark' ? '#374151' : '#e5e7eb',
+                        },
+                  ]}
+                  onPress={() => setSelectedDate(date)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.dateButtonText,
+                      isSelected
+                        ? { color: '#ffffff', fontWeight: 'bold' }
+                        : { color: colors.text },
+                    ]}
+                  >
+                    {getDayLabel(date)}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {loading ? (
+            <View style={styles.cardCenter}>
+              <ActivityIndicator size="small" color={colors.tint} />
+            </View>
+          ) : error ? (
+            <View style={styles.cardCenter}>
+              <ThemedText style={{ color: '#ef4444' }}>{error}</ThemedText>
+            </View>
+          ) : selectedInsight ? (
+            <ThemedView
+              style={[
+                styles.insightCard,
+                {
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
+                  borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
+                },
+              ]}
+            >
+              <View style={styles.insightCardHeader}>
+                <ThemedText
+                  style={[styles.insightDate, { color: colors.icon }]}
+                >
+                  Cập nhật:{' '}
+                  {new Date(selectedInsight.createdAt).toLocaleTimeString(
+                    'vi-VN',
+                    { hour: '2-digit', minute: '2-digit' },
+                  )}
+                </ThemedText>
+                <View
+                  style={[styles.confBadge, { backgroundColor: colors.tint }]}
+                >
+                  <ThemedText style={styles.confText}>
+                    Độ tin cậy:{' '}
+                    {Math.round(selectedInsight.confidenceScore * 100)}%
+                  </ThemedText>
+                </View>
+              </View>
+              <ThemedText style={styles.insightContent}>
+                {selectedInsight.content}
+              </ThemedText>
+            </ThemedView>
+          ) : (
+            <ThemedView
+              style={[
+                styles.insightCard,
+                {
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
+                  borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
+                  alignItems: 'center',
+                  paddingVertical: 24,
+                },
+              ]}
+            >
+              <ThemedText style={{ color: colors.icon, textAlign: 'center' }}>
+                Không có phân tích cho ngày này.
+              </ThemedText>
+            </ThemedView>
+          )}
+        </ThemedView>
+
         {/* Quick Actions Grid */}
         <ThemedView style={styles.section}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -93,7 +304,8 @@ export default function HomeScreen() {
               style={[
                 styles.actionCard,
                 {
-                  backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
                   borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
                 },
               ]}
@@ -106,12 +318,17 @@ export default function HomeScreen() {
               style={[
                 styles.actionCard,
                 {
-                  backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
                   borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
                 },
               ]}
             >
-              <IconSymbol name="paperplane.fill" size={32} color={colors.tint} />
+              <IconSymbol
+                name="paperplane.fill"
+                size={32}
+                color={colors.tint}
+              />
               <ThemedText style={styles.actionLabel}>Soi cầu</ThemedText>
             </TouchableOpacity>
 
@@ -119,10 +336,12 @@ export default function HomeScreen() {
               style={[
                 styles.actionCard,
                 {
-                  backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
                   borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
                 },
               ]}
+              onPress={() => router.push('/strategy' as any)}
             >
               <IconSymbol name="chevron.right" size={32} color={colors.tint} />
               <ThemedText style={styles.actionLabel}>Chiến lược</ThemedText>
@@ -132,7 +351,8 @@ export default function HomeScreen() {
               style={[
                 styles.actionCard,
                 {
-                  backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
                   borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
                 },
               ]}
@@ -221,6 +441,24 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: 16,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  generateButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    minWidth: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generateButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -247,5 +485,64 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 12,
     textAlign: 'center',
+  },
+  dateSelectorScroll: {
+    gap: 8,
+    paddingBottom: 12,
+  },
+  dateButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 70,
+  },
+  dateButtonText: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  insightCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  insightCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 8,
+  },
+  insightDate: {
+    fontSize: 12,
+  },
+  confBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  confText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  insightContent: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  cardCenter: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -1,21 +1,42 @@
 ---
 name: strict-validation
 description: "Trigger whenever modifying frontend forms, API clients, or UI components that send data to the backend. Enforces strict client-side validation that matches backend DTOs before any API calls are made."
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - Edit
 ---
 
-# Front-End Validation Rule
+# Front-End Strict Validation Skill
 
-## Tình huống bắt buộc
-Rule này BẮT BUỘC áp dụng mỗi khi bạn viết, thêm hoặc chỉnh sửa code ở frontend (ví dụ: `app/**/*.tsx`, `.ts`) mà code đó **lấy dữ liệu từ user và chuẩn bị gửi lên backend (API call)**.
+## Khi nào kích hoạt
+Rule này BẮT BUỘC áp dụng mỗi khi viết, thêm hoặc chỉnh sửa code ở frontend (`app/**/*.tsx`, `app/**/*.ts`) mà code đó **lấy dữ liệu từ user và gửi lên backend (API call)**.
 
-## Quy tắc (Rule)
-1. **Đồng bộ với Backend**: Frontend phải validate data nghiêm ngặt theo chuẩn DTO của backend (ví dụ `server/src/**/*.dto.ts`). Nếu backend quy định `@MinLength(6)`, `@IsEmail`, frontend cũng phải bắt lỗi y hệt.
-2. **Ngăn chặn từ xa**: Mọi request API đều PHẢI nằm sau một lớp kiểm tra validation (ví dụ gọi `validateForm()`, hoặc schema validation như `Zod`, `Yup`).
-3. **Rollback & Điều chỉnh**: Nếu bạn (Claude) lỡ viết code gọi API (`apiClient.post`, `fetch`, `register(`, v.v.) mà quên KHÔNG thực hiện validation trước đó:
-   - Tự nhận ra lỗi và **TỰ ĐỘNG ROLLBACK** đoạn code vừa viết bằng các tool chỉnh sửa hoặc lệnh Git (`git checkout -- <file>`).
-   - Dừng việc gọi API lại.
-   - Trình bày lại hướng làm với User, ưu tiên việc tạo file schema dùng chung (shared schema) hoặc cập nhật UI để validate dữ liệu triệt để trước khi đi tiếp.
+## Quy trình bắt buộc
 
-## Hành động ngay lập tức
-- Khi skill này được kích hoạt, hãy dùng tool `Read` hoặc `Grep` để đọc DTO ở backend tương ứng với chức năng bạn đang làm.
-- Xác minh lại logic UI hiện tại xem đã có validation chuẩn chưa. Nếu thiếu, bắt buộc cập nhật validation UI trước.
+### Bước 1: Đọc backend DTO
+Dùng `Grep` tìm DTO tương ứng trong `server/src/**/*.dto.ts`. Xác định tất cả validation decorator (`@IsEmail`, `@MinLength`, `@IsNotEmpty`, `@IsEnum`, `@MaxLength`, `@Matches`, v.v.).
+
+### Bước 2: Kiểm tra frontend validation hiện tại
+Đọc file form/component đang sửa. So sánh validation frontend với DTO backend.
+
+### Bước 3: Đồng bộ validation
+Mọi constraint ở backend DTO → frontend phải enforce tương tự TRƯỚC khi gọi API:
+- `@IsEmail()` → regex email check
+- `@MinLength(N)` → check `value.trim().length >= N`
+- `@IsNotEmpty()` → check `value.trim() !== ''`
+- `@IsEnum(E)` → check value nằm trong enum values
+- `@MaxLength(N)` → check `value.length <= N`
+- `@Matches(regex)` → check cùng regex
+
+### Bước 4: Tự kiểm tra
+Nếu phát hiện code gọi API (`apiClient.post`, `apiClient.put`, `fetch`, v.v.) mà KHÔNG có validation trước đó:
+1. DỪNG lại
+2. Thêm validation trước khi tiếp tục
+3. Giải thích cho user những validation đã thêm
+
+## Error display
+- Hiển thị lỗi inline dưới mỗi field
+- Disable submit button khi đang loading
+- Clear error khi user bắt đầu sửa field

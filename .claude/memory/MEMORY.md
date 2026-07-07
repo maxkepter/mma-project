@@ -1,0 +1,3 @@
+- [Project Conventions](project-conventions.md) — Tổng hợp các convention và pattern dùng chung cho toàn dự án
+- [Known Bugs](known-bugs.md) — Các bug đã phát hiện trong codebase cần lưu ý
+- [UI Patterns](ui-patterns.md) — Các pattern UI/UX đã thiết lập trong app

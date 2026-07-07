@@ -24,7 +24,6 @@ export default function StatsLayout() {
       <Stack.Screen name="pairs" options={{ title: 'Cặp số' }} />
       <Stack.Screen name="heatmap" options={{ title: 'Bản đồ nhiệt' }} />
       <Stack.Screen name="analytics" options={{ title: 'Phân tích & Dự báo' }} />
-      <Stack.Screen name="ai-insight" options={{ title: 'Phân tích AI' }} />
     </Stack>
   );
 }
