@@ -94,28 +94,28 @@ export const OPERATOR_LABELS: Record<ConditionOperator, string> = {
 };
 
 /** Fields available for each condition type */
-export const CONDITION_FIELDS: Record<ConditionType, { value: string; label: string }[]> = {
+export const CONDITION_FIELDS: Record<ConditionType, { value: string; label: string; hint: string }[]> = {
   frequency: [
-    { value: 'count', label: 'Số lần xuất hiện' },
-    { value: 'lastAppeared', label: 'Ngày xuất hiện gần nhất' },
-    { value: 'gap', label: 'Khoảng cách' },
+    { value: 'count', label: 'Số lần xuất hiện', hint: 'Số lần con số đó xuất hiện trong khung thời gian khảo sát.' },
+    { value: 'lastAppeared', label: 'Ngày xuất hiện gần nhất', hint: 'Số kỳ quay tính từ lần xuất hiện cuối cùng của số đó đến nay.' },
+    { value: 'gap', label: 'Khoảng cách', hint: 'Khoảng cách trung bình giữa các lần xuất hiện liên tiếp của số đó.' },
   ],
   gan: [
-    { value: 'daysOut', label: 'Số ngày chưa ra' },
-    { value: 'maxGap', label: 'Kỷ lục gan' },
-    { value: 'currentGap', label: 'Gan hiện tại' },
+    { value: 'daysOut', label: 'Số ngày chưa ra', hint: 'Số ngày (kỳ quay) liên tiếp con số này chưa xuất hiện.' },
+    { value: 'maxGap', label: 'Kỷ lục gan', hint: 'Số ngày chưa xuất hiện lâu nhất lịch sử ghi nhận của con số này.' },
+    { value: 'currentGap', label: 'Gan hiện tại', hint: 'Chu kỳ gan hiện tại của số đó tính đến kỳ quay mới nhất.' },
   ],
   head_tail: [
-    { value: 'headCount', label: 'Đầu số' },
-    { value: 'tailCount', label: 'Đuôi số' },
+    { value: 'headCount', label: 'Đầu số', hint: 'Số lần xuất hiện của chữ số hàng chục của số đó trong các giải.' },
+    { value: 'tailCount', label: 'Đuôi số', hint: 'Số lần xuất hiện của chữ số hàng đơn vị của số đó trong các giải.' },
   ],
   heatmap: [
-    { value: 'zoneValue', label: 'Giá trị vùng' },
-    { value: 'intensity', label: 'Cường độ' },
+    { value: 'zoneValue', label: 'Giá trị vùng', hint: 'Số lượng số xuất hiện phân bố theo từng khu vực bảng số.' },
+    { value: 'intensity', label: 'Cường độ', hint: 'Độ đậm nhạt thể hiện tần suất tập trung của vùng số đó.' },
   ],
   pairs: [
-    { value: 'pairCount', label: 'Số cặp' },
-    { value: 'pairFrequency', label: 'Tần suất cặp' },
+    { value: 'pairCount', label: 'Số cặp', hint: 'Số lần cặp số này xuất hiện cùng nhau trong cùng một kỳ quay.' },
+    { value: 'pairFrequency', label: 'Tần suất cặp', hint: 'Tỷ lệ xuất hiện của cặp số này so với các cặp số khác.' },
   ],
 };
 

@@ -12,6 +12,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   CONDITION_FIELDS,
+  CONDITION_FIELD_DESCRIPTIONS,
   CONDITION_TYPE_LABELS,
   OPERATOR_LABELS,
   type ConditionOperator,
@@ -218,6 +219,19 @@ export function ConditionEditor({
         onChange={handleField}
         placeholder="Chọn trường…"
       />
+      {condition.field && (
+        <ThemedText
+          style={{
+            color: colors.icon,
+            fontSize: 12,
+            marginTop: -4,
+            marginBottom: 10,
+            lineHeight: 16,
+          }}
+        >
+          {CONDITION_FIELD_DESCRIPTIONS[condition.type]?.[condition.field]}
+        </ThemedText>
+      )}
 
       <Picker
         label="Phép so sánh"

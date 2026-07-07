@@ -24,7 +24,7 @@ pip install -r ai/requirements.txt  # Install AI Python dependencies
 ### Development
 
 ```bash
-npm run dev           # Run both app and server concurrently
+npm run dev           # Run app, server, and AI concurrently
 npm run app:dev       # Expo app only (expo start)
 npm run server:dev    # NestJS server only (nest start --watch)
 npm run ai:dev        # AI Python server only (fastapi)
