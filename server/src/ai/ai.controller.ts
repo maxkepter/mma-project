@@ -1,5 +1,6 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { AIInsightService } from './services/ai-insight.service';
+import type { GenerateInsightDto } from './services/ai-insight.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('ai')
@@ -20,5 +21,10 @@ export class AIController {
   @Get('insights/daily')
   async getDailyInsights(@Query('days') days?: string) {
     return this.insightService.getDailyInsights(days ? parseInt(days, 10) : 7);
+  }
+
+  @Post('insights/generate')
+  async generateInsight(@Body() dto: GenerateInsightDto) {
+    return this.insightService.generateInsight(dto);
   }
 }

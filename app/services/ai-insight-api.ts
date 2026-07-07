@@ -22,4 +22,8 @@ export const aiInsightApi = {
   getDailyInsights() {
     return apiClient.get<AIInsightItem[]>("/ai/insights/daily");
   },
+
+  generateInsight(dto: { targetDate?: string; region?: string }) {
+    return apiClient.post<AIInsightItem>("/ai/insights/generate", dto);
+  },
 };

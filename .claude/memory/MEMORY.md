@@ -1,3 +1,3 @@
-- [Register Success Modal](register-success-modal.md) — Custom Modal popup on successful registration with auto-redirect to login
-- [NestJS Global JWT Guard](nestjs-global-jwt-guard.md) — Never redeclare `@UseGuards(JwtAuthGuard)` on controllers; guard is already global via APP_GUARD
-- [Project Rule Location Default](project-rule-no-location.md) — Default to project root for undefined rule additions
+- [Project Conventions](project-conventions.md) — Tổng hợp các convention và pattern dùng chung cho toàn dự án
+- [Known Bugs](known-bugs.md) — Các bug đã phát hiện trong codebase cần lưu ý
+- [UI Patterns](ui-patterns.md) — Các pattern UI/UX đã thiết lập trong app

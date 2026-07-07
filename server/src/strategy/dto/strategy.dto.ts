@@ -1,20 +1,64 @@
+import { Type } from 'class-transformer';
 import {
-  IsNotEmpty,
-  IsString,
-  IsOptional,
   IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
   ValidateNested,
   IsDateString,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
+export enum ConditionOperator {
+  EQ = 'eq',
+  GT = 'gt',
+  GTE = 'gte',
+  LT = 'lt',
+  LTE = 'lte',
+  BETWEEN = 'between',
+  IN = 'in',
+}
+
+export enum ConditionType {
+  FREQUENCY = 'frequency',
+  GAN = 'gan',
+  HEAD_TAIL = 'head_tail',
+  HEATMAP = 'heatmap',
+  PAIRS = 'pairs',
+}
+
+/**
+ * Strategy condition.
+ * `parameters` kept for backward compatibility; new clients should send
+ * the structured fields (field/operator/value) which are stored as-is.
+ */
 export class StrategyConditionDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  type!: string;
+  id?: string;
 
+  @IsEnum(ConditionType)
   @IsNotEmpty()
-  parameters!: Record<string, any>;
+  type!: ConditionType;
+
+  @IsOptional()
+  @IsString()
+  field?: string;
+
+  @IsOptional()
+  @IsEnum(ConditionOperator)
+  operator?: ConditionOperator;
+
+  @IsOptional()
+  value?: number | string | number[];
+
+  @IsOptional()
+  @IsString()
+  logic?: 'AND' | 'OR';
+
+  @IsOptional()
+  parameters?: Record<string, any>;
 }
 
 export class CreateStrategyDto {
@@ -50,11 +94,24 @@ export class UpdateStrategyDto {
 }
 
 export class RunBacktestDto {
-  @IsDateString()
-  @IsNotEmpty()
-  startDate!: string;
+  /** Number of days to backtest (1–99). Takes priority over startDate/endDate. */
+  @IsOptional()
+  days?: number | string;
 
+  @IsOptional()
   @IsDateString()
-  @IsNotEmpty()
-  endDate!: string;
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+}
+
+export class SaveBacktestRunDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsBoolean()
+  saved!: boolean;
 }

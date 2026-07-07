@@ -12,6 +12,7 @@ import {
   CreateStrategyDto,
   UpdateStrategyDto,
   RunBacktestDto,
+  SaveBacktestRunDto,
 } from './dto/strategy.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/auth.types';
@@ -59,5 +60,15 @@ export class StrategyController {
     @Body() runBacktestDto: RunBacktestDto,
   ) {
     return this.strategyService.runBacktest(user.sub, id, runBacktestDto);
+  }
+
+  @Patch(':id/backtest/:runId')
+  async saveBacktestRun(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('runId') runId: string,
+    @Body() dto: SaveBacktestRunDto,
+  ) {
+    return this.strategyService.saveBacktestRun(user.sub, id, runId, dto);
   }
 }

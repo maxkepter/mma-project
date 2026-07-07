@@ -162,13 +162,61 @@ export class AIInsightService {
     }));
   }
 
-  @Cron('0 19 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('0 0 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handleDailyInsightCron() {
+    // Backfill: dam bao 7 ngay gan nhat deu co insight
+    await this.backfillMissingInsights(7);
+
+    // Tao insight cho ngay moi (hom nay)
     const target = new Date(
       new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
     );
     const today = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
     await this.generateInsight({ targetDate: today });
+  }
+
+  /**
+   * Kiem tra trong N ngay gan nhat, ngay nao chua co insight thi tu dong tao.
+   * Dam bao lich su insight luon day du khi sang ngay moi.
+   */
+  async backfillMissingInsights(days: number = 7): Promise<void> {
+    const now = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+    );
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    // Lay tap targetDate da co insight
+    const existing = await this.insightRepo
+      .createQueryBuilder('i')
+      .select('DISTINCT i.targetDate', 'targetDate')
+      .where('i.targetDate IS NOT NULL')
+      .getRawMany<{ targetDate: string }>();
+    const existingDates = new Set(existing.map((e) => e.targetDate));
+
+    // Liet ke N ngay gan nhat (tinh ca hom nay) theo mui gio VN
+    const missing: string[] = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (!existingDates.has(dateStr)) missing.push(dateStr);
+    }
+
+    // Tao insight cho cac ngay thieu (theo thu tu cu -> moi)
+    missing.reverse();
+    for (const dateStr of missing) {
+      try {
+        await this.generateInsight({ targetDate: dateStr });
+      } catch {
+        // Bo qua loi tung ngay de khong chan cac ngay sau
+      }
+    }
+
+    if (missing.length) {
+      console.log(
+        `[AIInsight] Backfilled ${missing.length} ngay: ${missing.join(', ')} (today=${todayStr})`,
+      );
+    }
   }
 
   private generateFallbackInsight(payload: {
