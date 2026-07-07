@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
 } from '@nestjs/common';
 import { StrategyService } from './strategy.service';
 import {
@@ -14,12 +13,10 @@ import {
   UpdateStrategyDto,
   RunBacktestDto,
 } from './dto/strategy.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/auth.types';
 
 @Controller('strategy')
-@UseGuards(JwtAuthGuard)
 export class StrategyController {
   constructor(private readonly strategyService: StrategyService) {}
 
