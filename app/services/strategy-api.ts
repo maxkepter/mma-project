@@ -66,6 +66,9 @@ export interface RunBacktestDto {
   days?: number;
   startDate?: string;
   endDate?: string;
+  /** Khi true, server sẽ INSERT row vào DB. Mặc định false = chỉ trả về preview. */
+  save?: boolean;
+  name?: string;
 }
 
 export interface SaveBacktestRunDto {

@@ -105,6 +105,15 @@ export class RunBacktestDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  /** When true, persist the run to DB. When false/undefined, run is preview-only. */
+  @IsOptional()
+  @IsBoolean()
+  save?: boolean;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
 }
 
 export class SaveBacktestRunDto {

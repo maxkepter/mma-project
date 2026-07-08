@@ -46,7 +46,7 @@ const last7Days = Array.from({ length: 7 }, (_, i) => {
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
 
   const [insights, setInsights] = useState<AIInsightItem[]>([]);
@@ -70,8 +70,15 @@ export default function HomeScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
+      // Guard: only fetch when authenticated. HomeScreen can mount briefly
+      // before RootLayoutNav redirects to /login, which would otherwise hit
+      // /ai/insights/daily without a valid token and produce a 401.
+      if (!isAuthenticated) {
+        setLoading(false);
+        return;
+      }
       fetchInsights();
-    }, []),
+    }, [isAuthenticated]),
   );
 
   const handleGenerateInsight = async () => {

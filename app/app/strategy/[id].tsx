@@ -220,21 +220,44 @@ export default function StrategyDetailScreen() {
 
   const handleSaveRun = async (run: BacktestRun) => {
     try {
-      const res = await strategyApi.saveBacktestRun(id as string, run.id, {
-        saved: !run.saved,
-      });
-      // Update both latestRun and the saved list inside strategy
-      setLatestRun(res.data);
-      if (strategy) {
-        setStrategy({
-          ...strategy,
-          backtestRuns: (strategy.backtestRuns ?? []).map((r) =>
-            r.id === res.data.id ? res.data : r,
-          ),
+      if (!run.saved) {
+        // Preview run (no DB id) → ask server to compute + persist in one shot
+        const res = await strategyApi.runBacktest(id as string, {
+          startDate: run.startDate,
+          endDate: run.endDate,
+          save: true,
+          name: run.name,
         });
+        const persisted = res.data;
+        setLatestRun(persisted);
+        if (strategy) {
+          setStrategy({
+            ...strategy,
+            backtestRuns: [persisted, ...(strategy.backtestRuns ?? [])],
+          });
+        }
+      } else {
+        // Already saved → un-save deletes the row from DB
+        await strategyApi.saveBacktestRun(id as string, run.id, {
+          saved: false,
+        });
+        if (latestRun && latestRun.id === run.id) {
+          setLatestRun({ ...latestRun, saved: false });
+        }
+        if (strategy) {
+          setStrategy({
+            ...strategy,
+            backtestRuns: (strategy.backtestRuns ?? []).filter(
+              (r) => r.id !== run.id,
+            ),
+          });
+        }
       }
     } catch {
-      Alert.alert('Lỗi', 'Lưu kết quả thất bại');
+      Alert.alert(
+        'Lỗi',
+        run.saved ? 'Bỏ lưu kết quả thất bại' : 'Lưu kết quả thất bại',
+      );
     }
   };
 

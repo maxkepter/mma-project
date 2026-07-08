@@ -19,6 +19,7 @@ const mockBacktestRepo = () => ({
   create: jest.fn(),
   save: jest.fn(),
   findOne: jest.fn(),
+  remove: jest.fn(),
 });
 
 const mockLotteryResultRepo = () => ({
@@ -78,7 +79,6 @@ describe('StrategyService', () => {
       thirtyDaysAgo.setDate(today.getDate() - 30);
 
       backtestRepo.create.mockReturnValue({});
-      backtestRepo.save.mockImplementation((entity) => Promise.resolve(entity));
 
       const result = await service.runBacktest(userId, strategyId, {});
 
@@ -94,7 +94,6 @@ describe('StrategyService', () => {
 
     it('should respect days param (1-99)', async () => {
       backtestRepo.create.mockReturnValue({});
-      backtestRepo.save.mockImplementation((entity) => Promise.resolve(entity));
 
       const result = await service.runBacktest(userId, strategyId, {
         days: '7',
@@ -110,7 +109,6 @@ describe('StrategyService', () => {
 
     it('should clamp days to 1-99', async () => {
       backtestRepo.create.mockReturnValue({});
-      backtestRepo.save.mockImplementation((entity) => Promise.resolve(entity));
 
       // days > 99 should be clamped to 99
       await service.runBacktest(userId, strategyId, { days: '200' });
@@ -132,7 +130,6 @@ describe('StrategyService', () => {
 
     it('should accept numeric days (number type)', async () => {
       backtestRepo.create.mockReturnValue({});
-      backtestRepo.save.mockImplementation((entity) => Promise.resolve(entity));
 
       // days as number (from app)
       await service.runBacktest(userId, strategyId, {
@@ -147,14 +144,34 @@ describe('StrategyService', () => {
       expect(diffDays).toBeLessThanOrEqual(91);
     });
 
-    it('should mark saved=false on new backtest run', async () => {
+    it('should NOT persist to DB when save flag is absent (preview-only)', async () => {
       backtestRepo.create.mockReturnValue({});
       backtestRepo.save.mockImplementation((entity) => Promise.resolve(entity));
 
-      await service.runBacktest(userId, strategyId, { days: '7' });
+      const result = await service.runBacktest(userId, strategyId, {
+        days: '7',
+      });
 
+      expect(backtestRepo.save).not.toHaveBeenCalled();
       const created = backtestRepo.create.mock.calls[0][0];
       expect(created.saved).toBe(false);
+      expect(result).toBeDefined();
+    });
+
+    it('should persist to DB when save=true', async () => {
+      backtestRepo.create.mockReturnValue({});
+      backtestRepo.save.mockImplementation((entity) => Promise.resolve(entity));
+
+      await service.runBacktest(userId, strategyId, {
+        days: '7',
+        save: true,
+        name: 'My run',
+      });
+
+      expect(backtestRepo.save).toHaveBeenCalledTimes(1);
+      const created = backtestRepo.create.mock.calls[0][0];
+      expect(created.saved).toBe(true);
+      expect(created.name).toBe('My run');
     });
   });
 
@@ -178,32 +195,19 @@ describe('StrategyService', () => {
       expect(existingRun.saved).toBe(true);
     });
 
-    it('should handle saved=1 (number) from app toggle', async () => {
-      strategyRepo.findOne.mockResolvedValue(makeStrategy());
-      const existingRun = { id: runId, saved: false } as BacktestRun;
-      backtestRepo.findOne.mockResolvedValue(existingRun);
-      backtestRepo.save.mockImplementation((entity) => Promise.resolve(entity));
-
-      await service.saveBacktestRun(userId, strategyId, runId, {
-        saved: 1 as unknown as boolean,
-      });
-
-      // service assigns dto.saved as-is (no coercion); truthy value remains
-      expect(existingRun.saved).toBe(1);
-    });
-
-    it('should handle saved=0 (number) from app toggle', async () => {
+    it('should DELETE from DB when saved=false', async () => {
       strategyRepo.findOne.mockResolvedValue(makeStrategy());
       const existingRun = { id: runId, saved: true } as BacktestRun;
       backtestRepo.findOne.mockResolvedValue(existingRun);
-      backtestRepo.save.mockImplementation((entity) => Promise.resolve(entity));
+      backtestRepo.remove.mockResolvedValue(existingRun);
 
-      await service.saveBacktestRun(userId, strategyId, runId, {
-        saved: 0 as unknown as boolean,
+      const result = await service.saveBacktestRun(userId, strategyId, runId, {
+        saved: false,
       });
 
-      // service assigns dto.saved as-is (no coercion); falsy value remains
-      expect(existingRun.saved).toBe(0);
+      expect(backtestRepo.remove).toHaveBeenCalledWith(existingRun);
+      expect(backtestRepo.save).not.toHaveBeenCalled();
+      expect(result.saved).toBe(false);
     });
 
     it('should throw NotFoundException if run does not exist', async () => {
@@ -248,7 +252,6 @@ describe('StrategyService', () => {
 
     beforeEach(() => {
       backtestRepo.create.mockImplementation((e: any) => e);
-      backtestRepo.save.mockImplementation((e: any) => Promise.resolve(e));
     });
 
     it('bets non-zero when condition matches a real loto count', async () => {
