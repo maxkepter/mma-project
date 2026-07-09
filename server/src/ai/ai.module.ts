@@ -11,6 +11,7 @@ import { AuthModule } from '../auth/auth.module';
 import { StrategyModule } from '../strategy/strategy.module';
 import { JournalModule } from '../journal/journal.module';
 import { NewsModule } from '../news/news.module';
+import { LotteryCoreModule } from '../lottery-core/lottery-core.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { NewsModule } from '../news/news.module';
     StrategyModule,
     JournalModule,
     NewsModule,
+    LotteryCoreModule,
   ],
   controllers: [AIController],
   providers: [AIInsightService],

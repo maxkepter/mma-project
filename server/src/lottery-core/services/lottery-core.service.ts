@@ -23,21 +23,37 @@ export class LotteryCoreService implements OnApplicationBootstrap {
   }
 
   async seedLotteryData() {
-    const count = await this.resultRepo.count();
-    if (count > 0) {
-      console.log(`[LotteryCore] Database already has ${count} results. Skipping seed.`);
-      return;
-    }
-
-    console.log('[LotteryCore] Seeding lottery data from JSON...');
+    console.log('[LotteryCore] Checking for new lottery data from JSON...');
     try {
+      try {
+        // Cố gắng tải JSON mới nhất từ Github
+        await this.dataService.dailyUpdate();
+      } catch (dlError) {
+        console.warn('[LotteryCore] Download failed (maybe rate limited), using existing local JSON file.', dlError.message);
+      }
       const rawData = await this.dataService.getXsmbData();
-      console.log(`[LotteryCore] Loaded ${rawData.length} raw results. Saving to database...`);
+
+      // Tìm ngày mới nhất trong DB
+      const latestResult = await this.resultRepo.findOne({
+        where: {},
+        order: { date: 'DESC' },
+      });
+      const latestDate = latestResult ? new Date(latestResult.date).getTime() : 0;
+
+      // Chỉ lấy những kết quả có ngày lớn hơn ngày mới nhất trong DB
+      const newRawData = rawData.filter(r => new Date(r.date).getTime() > latestDate);
+
+      if (newRawData.length === 0) {
+        console.log(`[LotteryCore] Database is up to date. No new results to seed.`);
+        return;
+      }
+
+      console.log(`[LotteryCore] Loaded ${newRawData.length} new results. Saving to database...`);
 
       // Seed in batches to avoid memory/query limits
       const batchSize = 100;
-      for (let i = 0; i < rawData.length; i += batchSize) {
-        const batch = rawData.slice(i, i + batchSize);
+      for (let i = 0; i < newRawData.length; i += batchSize) {
+        const batch = newRawData.slice(i, i + batchSize);
         const entities: LotteryResult[] = [];
 
         for (const raw of batch) {
@@ -86,7 +102,7 @@ export class LotteryCoreService implements OnApplicationBootstrap {
         }
 
         await this.resultRepo.save(entities);
-        console.log(`[LotteryCore] Seeded batch ${i / batchSize + 1}/${Math.ceil(rawData.length / batchSize)}`);
+        console.log(`[LotteryCore] Seeded batch ${i / batchSize + 1}/${Math.ceil(newRawData.length / batchSize)}`);
       }
 
       console.log('[LotteryCore] Seeding completed successfully.');

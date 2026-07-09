@@ -222,7 +222,7 @@ export default function AIAssistantChatScreen() {
                   >
                     <ThemedText numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 16, flexShrink: 1 }}>{item.title}</ThemedText>
                     <ThemedText style={{ fontSize: 12, color: colors.icon, marginTop: 4 }}>
-                      Phiên: {item.id.slice(0, 8)}
+                      {item.updatedAt ? new Date(item.updatedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Mới đây'}
                     </ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDeleteConversation(item.id)} style={{ padding: 8 }}>

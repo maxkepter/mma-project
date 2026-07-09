@@ -4,9 +4,9 @@ import { LotteryResult } from '../identity/types/LotteryResult';
 
 export class DataDownloader {
   private readonly XSMB_URL =
-    'https://raw.githubusercontent.com/khiemdoan/vietnam-lottery-xsmb-analysis/refs/heads/main/data/xsmb.json';
+    'https://raw.githubusercontent.com/khiemdoan/vietnam-lottery-xsmb-analysis/main/data/xsmb.json';
   private readonly XSMB_2_DIGITS_URL =
-    'https://raw.githubusercontent.com/khiemdoan/vietnam-lottery-xsmb-analysis/refs/heads/main/data/xsmb-2-digits.json';
+    'https://raw.githubusercontent.com/khiemdoan/vietnam-lottery-xsmb-analysis/main/data/xsmb-2-digits.json';
 
   private readonly FILE_PATH = path.join(process.cwd(), 'src', 'data', 'raw');
   private readonly XSMB = 'xsmb.json';

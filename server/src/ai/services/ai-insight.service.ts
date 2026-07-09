@@ -8,6 +8,7 @@ import { ChatMessage } from '../entities/chat-message.entity';
 import { Strategy } from '../../strategy/entities/strategy.entity';
 import { BetEntry } from '../../journal/entities/bet-entry.entity';
 import { NewsArticle } from '../../news/entities/news-article.entity';
+import { LotteryResult } from '../../lottery-core/entities/lottery-result.entity';
 import { StatisticsService } from '../../statistics/statistics.service';
 import { AnalyticsService } from '../../analytics/analytics.service';
 import { ChatAssistantDto } from '../dto/chat-assistant.dto';
@@ -41,6 +42,8 @@ export class AIInsightService {
     private readonly betEntryRepo: Repository<BetEntry>,
     @InjectRepository(NewsArticle)
     private readonly newsRepo: Repository<NewsArticle>,
+    @InjectRepository(LotteryResult)
+    private readonly lotteryResultRepo: Repository<LotteryResult>,
     private readonly statisticsService: StatisticsService,
     private readonly analyticsService: AnalyticsService,
   ) {}
@@ -291,8 +294,9 @@ export class AIInsightService {
    * Thu thập ngữ cảnh (chiến lược, nhật ký, thống kê, tin tức) và gửi sang AI Service.
    */
   async chatAssistant(userId: string, dto: ChatAssistantDto) {
-    let conversation: ChatConversation;
-    let history: any[] = [];
+    try {
+      let conversation: ChatConversation | null = null;
+      let history: any[] = [];
 
     if (dto.conversationId) {
       const found = await this.conversationRepo.findOne({
@@ -309,7 +313,7 @@ export class AIInsightService {
       // Fetch last 6 messages for short-term memory
       const lastMessages = await this.messageRepo.find({
         where: { conversation: { id: dto.conversationId } },
-        order: { id: 'DESC' },
+        order: { timestamp: 'DESC' },
         take: 6,
       });
       // Reverse to maintain chronological order
@@ -329,7 +333,9 @@ export class AIInsightService {
 
     // Thu thập ngữ cảnh dựa trên từ khóa trong câu hỏi
     const lowerMsg = dto.message.toLowerCase();
-    let contextData: any = {};
+    const contextData: any = {
+      currentDate: new Date().toISOString(),
+    };
 
     if (lowerMsg.includes('chiến lược') || lowerMsg.includes('strategy')) {
       const strategies = await this.strategyRepo.find({
@@ -388,6 +394,24 @@ export class AIInsightService {
       }));
     }
 
+    // Luôn luôn cung cấp kết quả mới nhất cho AI để tránh việc nó bị thiếu thông tin
+    const latestResults = await this.lotteryResultRepo.find({
+      take: 1,
+      order: { date: 'DESC' },
+      relations: ['numbers'],
+    });
+    const latestResult = latestResults[0];
+    if (latestResult) {
+      contextData.latestLotteryResult = {
+        date: latestResult.date,
+        region: latestResult.region,
+        numbers: latestResult.numbers.map((n) => ({
+          prize: n.prizeLevel,
+          value: n.value,
+        })),
+      };
+    }
+
     // Lưu tin nhắn của user
     const userMsg = this.messageRepo.create({
       role: 'user',
@@ -420,10 +444,14 @@ export class AIInsightService {
     });
     await this.messageRepo.save(aiMsg);
 
-    return {
-      conversationId: conversation.id,
-      message: aiReply,
-    };
+      return {
+        conversationId: conversation.id,
+        message: aiReply,
+      };
+    } catch (error: any) {
+      require('fs').writeFileSync('error.log', error.stack || error.message);
+      throw error;
+    }
   }
 
   /**
@@ -454,7 +482,7 @@ export class AIInsightService {
 
     const messages = await this.messageRepo.find({
       where: { conversation: { id: conversationId } },
-      order: { id: 'ASC' }, // Order by ID to keep chronological order if createdAt is not available
+      order: { timestamp: 'ASC' }, // Sort by timestamp, not UUID
     });
 
     return messages.map((m) => ({

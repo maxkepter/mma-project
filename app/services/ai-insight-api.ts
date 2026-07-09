@@ -18,6 +18,7 @@ export interface ChatConversation {
   userId: string;
   chatType: string;
   title: string;
+  updatedAt: string;
 }
 
 export interface ChatMessage {

@@ -204,7 +204,9 @@ def call_gemini_chat(prompt: str, system_instruction: str, history: list[dict] |
     if not api_key or api_key == "your-google-api-key-here":
         raise RuntimeError("GOOGLE_API_KEY chưa được cấu hình trong file .env")
 
+    import time
     from google import genai
+    from google.genai import types
 
     client = genai.Client(api_key=api_key)
     
@@ -219,21 +221,46 @@ def call_gemini_chat(prompt: str, system_instruction: str, history: list[dict] |
     # Add current prompt
     contents.append({"role": "user", "parts": [{"text": prompt}]})
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=contents,
-        config={
-            "temperature": 0.7,
-            "top_p": 0.9,
-            "max_output_tokens": 2048,
-            "system_instruction": system_instruction,
-        },
-    )
-
-    text = (response.text or "").strip()
-    if not text:
-        raise RuntimeError("Gemini trả về phản hồi rỗng")
-    return text
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=contents,
+                config={
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                    "max_output_tokens": 4096,
+                    "system_instruction": system_instruction,
+                    "safety_settings": [
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                        )
+                    ]
+                },
+            )
+            text = (response.text or "").strip()
+            if not text:
+                raise RuntimeError("Gemini trả về phản hồi rỗng (có thể do bộ lọc an toàn).")
+            return text
+        except Exception as e:
+            if "503" in str(e) and attempt < max_retries - 1:
+                time.sleep(2)  # Wait 2 seconds before retrying
+                continue
+            raise e
 
 
 # Chat endpoint for streaming responses
@@ -251,8 +278,12 @@ async def chat(request: AnalysisRequest):
             "3. Luôn phản hồi bằng tiếng Việt có dấu đầy đủ, định dạng Markdown rõ ràng.\n"
             "4. Khi phân tích lý do chiến lược thua, hãy chỉ ra các yếu tố kỹ thuật như: tần suất giảm, số gan tăng, chu kỳ thay đổi, điều kiện quá chặt.\n"
             "5. Khi so sánh chiến lược, hãy xếp hạng theo ROI, tỷ lệ thắng (win rate) và đánh giá rủi ro.\n"
-            "6. Luôn thêm một câu cảnh báo miễn trừ trách nhiệm ngắn gọn ở cuối phản hồi."
+            "6. Luôn thêm một câu cảnh báo miễn trừ trách nhiệm ngắn gọn ở cuối phản hồi.\n"
+            "7. Khi người dùng hỏi về 'Thần số học' (Numerology) hoặc 'Giải mã số học', hãy cung cấp các phân tích dự đoán chuyên sâu dựa trên các phương pháp soi cầu như: số nóng, cầu kẹp số, cầu dạng số, tổng giải đặc biệt, số kép, giải 7, và đầu đuôi. Bạn hãy tỏ ra là một chuyên gia 'giải mã số học' với khả năng tư vấn những con số có xác suất cao dựa trên lịch sử (XSMB/XSMN)."
         )
+
+        if request.context:
+            system_instruction += f"\n\n[DỮ LIỆU BỐI CẢNH TỪ HỆ THỐNG]:\nBạn có quyền truy cập vào dữ liệu thực tế sau đây để trả lời câu hỏi của người dùng:\n{request.context}"
 
         try:
             result = call_gemini_chat(request.data, system_instruction, request.history)
