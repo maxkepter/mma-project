@@ -47,6 +47,11 @@ export default function HistoryScreen() {
         <View style={styles.cardBody}>
           <ThemedText>Tiền cược: {item.amount.toLocaleString()}đ</ThemedText>
           <ThemedText>Ngày xổ: {new Date(item.betDate).toLocaleDateString('vi-VN')}</ThemedText>
+          {!isWin && item.result && (
+            <ThemedText style={{ color: '#e74c3c', marginTop: 4 }}>
+              Số đặc biệt về: {item.result.actualNumber}
+            </ThemedText>
+          )}
           {isWin && item.result && (
             <ThemedText style={styles.winText}>Tiền nhận: +{item.result.payout.toLocaleString()}đ</ThemedText>
           )}

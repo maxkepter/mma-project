@@ -43,7 +43,7 @@ export class JournalProcessor {
     this.logger.log(`found ${pendingBets.length} pending bets to process.`);
 
     const dates = [
-      ...new Set(pendingBets.map((b) => b.betDate.toISOString().split('T')[0])),
+      ...new Set(pendingBets.map((b) => new Date(b.betDate).toISOString().split('T')[0])),
     ];
     const resultsMap = new Map<string, LotteryResult>();
 
@@ -62,8 +62,8 @@ export class JournalProcessor {
 
       if (
         lottoResult &&
-        lottoResult.date >= startOfDay &&
-        lottoResult.date <= endOfDay
+        new Date(lottoResult.date) >= startOfDay &&
+        new Date(lottoResult.date) <= endOfDay
       ) {
         resultsMap.set(dateStr, lottoResult);
       }
@@ -71,7 +71,7 @@ export class JournalProcessor {
 
     let processedCount = 0;
     for (const bet of pendingBets) {
-      const dateStr = bet.betDate.toISOString().split('T')[0];
+      const dateStr = new Date(bet.betDate).toISOString().split('T')[0];
       const lottoResult = resultsMap.get(dateStr);
 
       if (
