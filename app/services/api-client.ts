@@ -4,7 +4,7 @@ import { TokenStorage } from './token-storage';
 
 // Get API URL from environment variables or use sensible defaults
 const getBaseUrl = () => {
-  const port = process.env.EXPO_API_PORT || '3618';
+  const port = process.env.EXPO_PUBLIC_API_PORT || '3000';
 
   // Explicit host override (provide host only, port is appended automatically)
   if (
