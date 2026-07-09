@@ -8,6 +8,9 @@ import { AIInsightService } from './services/ai-insight.service';
 import { StatisticsModule } from '../statistics/statistics.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { AuthModule } from '../auth/auth.module';
+import { StrategyModule } from '../strategy/strategy.module';
+import { JournalModule } from '../journal/journal.module';
+import { NewsModule } from '../news/news.module';
 
 @Module({
   imports: [
@@ -15,6 +18,9 @@ import { AuthModule } from '../auth/auth.module';
     StatisticsModule,
     AnalyticsModule,
     AuthModule,
+    StrategyModule,
+    JournalModule,
+    NewsModule,
   ],
   controllers: [AIController],
   providers: [AIInsightService],

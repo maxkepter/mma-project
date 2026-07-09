@@ -5,6 +5,6 @@ import { BetResult } from './entities/bet-result.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([BetEntry, BetResult])],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, TypeOrmModule.forFeature([BetEntry, BetResult])],
 })
 export class JournalModule {}

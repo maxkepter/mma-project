@@ -300,19 +300,6 @@ export default function HomeScreen() {
             Chức năng
           </ThemedText>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity
-              style={[
-                styles.actionCard,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
-                  borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
-                },
-              ]}
-            >
-              <IconSymbol name="chart.bar.fill" size={32} color={colors.tint} />
-              <ThemedText style={styles.actionLabel}>Thống kê</ThemedText>
-            </TouchableOpacity>
 
             <TouchableOpacity
               style={[
@@ -323,13 +310,14 @@ export default function HomeScreen() {
                   borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
                 },
               ]}
+              onPress={() => router.push('/ai-assistant/chat' as any)}
             >
               <IconSymbol
                 name="paperplane.fill"
                 size={32}
                 color={colors.tint}
               />
-              <ThemedText style={styles.actionLabel}>Soi cầu</ThemedText>
+              <ThemedText style={styles.actionLabel}>Trợ lý AI</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity

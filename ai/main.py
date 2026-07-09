@@ -27,6 +27,7 @@ class AnalysisRequest(BaseModel):
     """Request model for AI analysis"""
     data: str
     context: str | None = None
+    history: list[dict] | None = None
 
 
 class AnalysisResponse(BaseModel):
@@ -75,7 +76,7 @@ def call_gemini(prompt: str) -> tuple[str, float]:
 
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         contents=prompt,
         config={
             "temperature": 0.7,
@@ -117,7 +118,7 @@ async def analyze(request: AnalysisRequest):
 
         try:
             result, confidence = call_gemini(prompt)
-            model_name = "gemini-2.0-flash"
+            model_name = "gemini-2.5-flash"
         except Exception as ai_err:
             # Fallback: return a deterministic Vietnamese placeholder so the
             # Nest caller still gets a usable (fully diacriticked) string.
@@ -197,18 +198,75 @@ async def predict(request: AnalysisRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def call_gemini_chat(prompt: str, system_instruction: str, history: list[dict] | None = None) -> str:
+    """Call Gemini for chat and return text. Raises on hard failure."""
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key or api_key == "your-google-api-key-here":
+        raise RuntimeError("GOOGLE_API_KEY chưa được cấu hình trong file .env")
+
+    from google import genai
+
+    client = genai.Client(api_key=api_key)
+    
+    # Build contents array
+    contents = []
+    if history:
+        for msg in history:
+            role = msg.get("role", "user")
+            parts = msg.get("parts", "")
+            contents.append({"role": role, "parts": [{"text": parts}]})
+            
+    # Add current prompt
+    contents.append({"role": "user", "parts": [{"text": prompt}]})
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=contents,
+        config={
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_output_tokens": 2048,
+            "system_instruction": system_instruction,
+        },
+    )
+
+    text = (response.text or "").strip()
+    if not text:
+        raise RuntimeError("Gemini trả về phản hồi rỗng")
+    return text
+
+
 # Chat endpoint for streaming responses
 @app.post("/chat")
 async def chat(request: AnalysisRequest):
     """
-    Chat with AI about lottery analysis.
+    Chat with AI about lottery analysis, strategies, journal, and news.
     """
     try:
-        response = {
-            "message": f"Phản hồi cho: {request.data}",
-            "timestamp": os.popen("date").read().strip(),
-        }
-        return response
+        system_instruction = (
+            "Bạn là trợ lý AI phân tích dữ liệu xổ số, kiểm thử chiến lược và quản lý rủi ro.\n"
+            "Yêu cầu bắt buộc:\n"
+            "1. Tuyệt đối KHÔNG cam kết kết quả trúng thưởng, KHÔNG khẳng định chắc chắn thắng lợi.\n"
+            "2. KHÔNG khuyến khích cờ bạc. Đóng vai trò là công cụ hỗ trợ phân tích dữ liệu thống kê và quản lý rủi ro.\n"
+            "3. Luôn phản hồi bằng tiếng Việt có dấu đầy đủ, định dạng Markdown rõ ràng.\n"
+            "4. Khi phân tích lý do chiến lược thua, hãy chỉ ra các yếu tố kỹ thuật như: tần suất giảm, số gan tăng, chu kỳ thay đổi, điều kiện quá chặt.\n"
+            "5. Khi so sánh chiến lược, hãy xếp hạng theo ROI, tỷ lệ thắng (win rate) và đánh giá rủi ro.\n"
+            "6. Luôn thêm một câu cảnh báo miễn trừ trách nhiệm ngắn gọn ở cuối phản hồi."
+        )
+
+        try:
+            result = call_gemini_chat(request.data, system_instruction, request.history)
+        except Exception as ai_err:
+            result = (
+                f"### Trợ lý AI\n\n"
+                f"Hệ thống chưa thể kết nối tới dịch vụ AI ({ai_err}).\n\n"
+                f"**Phản hồi dự phòng:** Tôi đã nhận được yêu cầu của bạn về: \"{request.data[:100]}...\". "
+                f"Tuy nhiên, do lỗi kết nối, tôi không thể thực hiện phân tích chi tiết lúc này. "
+                f"Vui lòng thử lại sau.\n\n"
+                f"*Lưu ý: Mọi phân tích chỉ mang tính chất tham khảo thống kê, không đảm bảo chính xác.*"
+            )
+
+        return {"message": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

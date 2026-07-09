@@ -5,6 +5,6 @@ import { DeathRecord } from './entities/death-record.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([NewsArticle, DeathRecord])],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, TypeOrmModule.forFeature([NewsArticle, DeathRecord])],
 })
 export class NewsModule {}

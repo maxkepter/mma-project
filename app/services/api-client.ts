@@ -4,7 +4,7 @@ import { TokenStorage } from './token-storage';
 
 // Get API URL from environment variables or use sensible defaults
 const getBaseUrl = () => {
-  const port = process.env.EXPO_API_PORT || '3618';
+  const port = process.env.EXPO_PUBLIC_API_PORT || '3618';
 
   // Explicit host override (provide host only, port is appended automatically)
   if (
@@ -34,7 +34,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // Event listener mechanism to notify AuthContext when auth fails catastrophically

@@ -33,8 +33,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const profile = await TokenStorage.getUserProfile();
 
         if (accessToken && profile) {
-          setIsAuthenticated(true);
-          setUser(profile);
+          try {
+            // Verify token validity with server. 
+            // If it's expired, apiClient will automatically try to refresh it.
+            // If refresh fails, apiClient triggers authFailureCallback which clears everything.
+            await apiClient.get('/auth/me');
+            setIsAuthenticated(true);
+            setUser(profile);
+          } catch (error) {
+            console.error('Failed to verify auth session on server', error);
+          }
         }
       } catch (error) {
         console.error('Failed to restore auth session', error);

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -36,5 +36,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   logout(@CurrentUser() user: JwtPayload) {
     return this.authService.logout(user.sub);
+  }
+
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  verifyToken(@CurrentUser() user: JwtPayload) {
+    return user;
   }
 }
