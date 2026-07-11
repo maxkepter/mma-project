@@ -3,8 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { AIInsight } from '../entities/ai-insight.entity';
+import { ChatConversation } from '../entities/chat-conversation.entity';
+import { ChatMessage } from '../entities/chat-message.entity';
+import { Strategy } from '../../strategy/entities/strategy.entity';
+import { BetEntry } from '../../journal/entities/bet-entry.entity';
+import { NewsArticle } from '../../news/entities/news-article.entity';
+import { LotteryResult } from '../../lottery-core/entities/lottery-result.entity';
 import { StatisticsService } from '../../statistics/statistics.service';
 import { AnalyticsService } from '../../analytics/analytics.service';
+import { ChatAssistantDto } from '../dto/chat-assistant.dto';
 import axios from 'axios';
 
 export interface GenerateInsightDto {
@@ -25,6 +32,18 @@ export class AIInsightService {
   constructor(
     @InjectRepository(AIInsight)
     private readonly insightRepo: Repository<AIInsight>,
+    @InjectRepository(ChatConversation)
+    private readonly conversationRepo: Repository<ChatConversation>,
+    @InjectRepository(ChatMessage)
+    private readonly messageRepo: Repository<ChatMessage>,
+    @InjectRepository(Strategy)
+    private readonly strategyRepo: Repository<Strategy>,
+    @InjectRepository(BetEntry)
+    private readonly betEntryRepo: Repository<BetEntry>,
+    @InjectRepository(NewsArticle)
+    private readonly newsRepo: Repository<NewsArticle>,
+    @InjectRepository(LotteryResult)
+    private readonly lotteryResultRepo: Repository<LotteryResult>,
     private readonly statisticsService: StatisticsService,
     private readonly analyticsService: AnalyticsService,
   ) {}
@@ -35,6 +54,22 @@ export class AIInsightService {
    * gui sang Python AI service de sinh nhan dinh tieng Viet.
    */
   async generateInsight(dto: GenerateInsightDto): Promise<AIInsightResponse> {
+    const targetDate = dto.targetDate ?? new Date().toISOString().split('T')[0];
+
+    // Check if insight already exists for this targetDate to avoid duplicate calls
+    const existingInsight = await this.insightRepo.findOne({
+      where: { targetDate },
+    });
+    if (existingInsight) {
+      return {
+        id: existingInsight.id,
+        content: existingInsight.content,
+        confidenceScore: existingInsight.confidenceScore,
+        createdAt: existingInsight.createdAt,
+        targetDate: existingInsight.targetDate,
+      };
+    }
+
     const [frequency, gan, predictions] = await Promise.all([
       this.statisticsService.getFrequency(100),
       this.statisticsService.getGan(1000),
@@ -64,8 +99,6 @@ export class AIInsightService {
       confidence: p.confidence,
     }));
 
-    const targetDate = dto.targetDate ?? new Date().toISOString().split('T')[0];
-
     // Build prompt payload
     const payload = {
       hotNumbers,
@@ -76,6 +109,7 @@ export class AIInsightService {
 
     let content = '';
     let confidenceScore = 0.5;
+    let isFallback = false;
 
     const aiServiceUrl = process.env.AI_SERVICE_URL;
     if (aiServiceUrl) {
@@ -97,26 +131,39 @@ export class AIInsightService {
       } catch {
         content = this.generateFallbackInsight(payload);
         confidenceScore = 0.4;
+        isFallback = true;
       }
     } else {
       content = this.generateFallbackInsight(payload);
       confidenceScore = 0.5;
+      isFallback = true;
     }
 
-    const insight = this.insightRepo.create({
-      content,
-      confidenceScore,
-      targetDate,
-    });
-    const saved = await this.insightRepo.save(insight);
+    if (!isFallback) {
+      const insight = this.insightRepo.create({
+        content,
+        confidenceScore,
+        targetDate,
+      });
+      const saved = await this.insightRepo.save(insight);
 
-    return {
-      id: saved.id,
-      content: saved.content,
-      confidenceScore: saved.confidenceScore,
-      createdAt: saved.createdAt,
-      targetDate: saved.targetDate,
-    };
+      return {
+        id: saved.id,
+        content: saved.content,
+        confidenceScore: saved.confidenceScore,
+        createdAt: saved.createdAt,
+        targetDate: saved.targetDate,
+      };
+    } else {
+      // Don't save fallback to DB so the user can retry later
+      return {
+        id: `fallback-${Date.now()}`,
+        content,
+        confidenceScore,
+        createdAt: new Date(),
+        targetDate,
+      };
+    }
   }
 
   async getInsights(limit: number = 10): Promise<AIInsightResponse[]> {
@@ -207,6 +254,8 @@ export class AIInsightService {
     for (const dateStr of missing) {
       try {
         await this.generateInsight({ targetDate: dateStr });
+        // Delay 15s to avoid Gemini Free Tier rate limit (15 RPM)
+        await new Promise((resolve) => setTimeout(resolve, 15000));
       } catch {
         // Bo qua loi tung ngay de khong chan cac ngay sau
       }
@@ -238,5 +287,223 @@ export class AIInsightService {
     lines.push('');
     lines.push('Luu y: Day la phan tich co so, khong dam bao chinh xac.');
     return lines.join('\n');
+  }
+
+  /**
+   * UC-26: Trao đổi với AI Assistant
+   * Thu thập ngữ cảnh (chiến lược, nhật ký, thống kê, tin tức) và gửi sang AI Service.
+   */
+  async chatAssistant(userId: string, dto: ChatAssistantDto) {
+    try {
+      let conversation: ChatConversation | null = null;
+      let history: any[] = [];
+
+    if (dto.conversationId) {
+      const found = await this.conversationRepo.findOne({
+        where: { id: dto.conversationId, userId },
+      });
+      if (!found) {
+        throw new Error('Conversation not found');
+      }
+      conversation = found;
+      // Force update the updatedAt timestamp in DB
+      await this.conversationRepo.update(conversation.id, { updatedAt: new Date() });
+      conversation.updatedAt = new Date();
+
+      // Fetch last 6 messages for short-term memory
+      const lastMessages = await this.messageRepo.find({
+        where: { conversation: { id: dto.conversationId } },
+        order: { timestamp: 'DESC' },
+        take: 6,
+      });
+      // Reverse to maintain chronological order
+      lastMessages.reverse();
+      history = lastMessages.map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: m.content,
+      }));
+    } else {
+      conversation = this.conversationRepo.create({
+        userId,
+        chatType: 'assistant',
+        title: dto.message.slice(0, 100) || 'Cuộc hội thoại mới',
+      });
+      conversation = await this.conversationRepo.save(conversation);
+    }
+
+    // Thu thập ngữ cảnh dựa trên từ khóa trong câu hỏi
+    const lowerMsg = dto.message.toLowerCase();
+    const contextData: any = {
+      currentDate: new Date().toISOString(),
+    };
+
+    if (lowerMsg.includes('chiến lược') || lowerMsg.includes('strategy')) {
+      const strategies = await this.strategyRepo.find({
+        where: { userId },
+        relations: ['conditions', 'backtestRuns'],
+        take: 5,
+      });
+      contextData.strategies = strategies.map((s) => ({
+        name: s.name,
+        description: s.description,
+        conditions: s.conditions,
+        backtestRuns: s.backtestRuns.slice(0, 3).map((r) => ({
+          startDate: r.startDate,
+          endDate: r.endDate,
+          winRate: r.winRate,
+          profit: r.profit,
+        })),
+      }));
+    }
+
+    if (lowerMsg.includes('nhật ký') || lowerMsg.includes('bet') || lowerMsg.includes('đánh')) {
+      const bets = await this.betEntryRepo.find({
+        where: { userId },
+        relations: ['result'],
+        order: { betDate: 'DESC' },
+        take: 10,
+      });
+      contextData.bets = bets.map((b) => ({
+        number: b.number,
+        amount: b.amount,
+        betDate: b.betDate,
+        status: b.status,
+        result: b.result,
+      }));
+    }
+
+    if (lowerMsg.includes('thống kê') || lowerMsg.includes('tần suất') || lowerMsg.includes('gan')) {
+      const [frequency, gan] = await Promise.all([
+        this.statisticsService.getFrequency(30),
+        this.statisticsService.getGan(100),
+      ]);
+      contextData.statistics = {
+        topFrequency: frequency.slice(0, 5),
+        topGan: gan.slice(0, 5),
+      };
+    }
+
+    if (lowerMsg.includes('tin tức') || lowerMsg.includes('news')) {
+      const news = await this.newsRepo.find({
+        order: { publishDate: 'DESC' },
+        take: 3,
+      });
+      contextData.news = news.map((n) => ({
+        title: n.title,
+        summary: n.summary,
+      }));
+    }
+
+    // Luôn luôn cung cấp kết quả mới nhất cho AI để tránh việc nó bị thiếu thông tin
+    const latestResults = await this.lotteryResultRepo.find({
+      take: 1,
+      order: { date: 'DESC' },
+      relations: ['numbers'],
+    });
+    const latestResult = latestResults[0];
+    if (latestResult) {
+      contextData.latestLotteryResult = {
+        date: latestResult.date,
+        region: latestResult.region,
+        numbers: latestResult.numbers.map((n) => ({
+          prize: n.prizeLevel,
+          value: n.value,
+        })),
+      };
+    }
+
+    // Lưu tin nhắn của user
+    const userMsg = this.messageRepo.create({
+      role: 'user',
+      content: dto.message,
+      conversation,
+    });
+    await this.messageRepo.save(userMsg);
+
+    // Gửi sang AI Service
+    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    let aiReply = '';
+
+    try {
+      const payload = {
+        data: dto.message,
+        context: JSON.stringify(contextData),
+        history: history.length > 0 ? history : undefined,
+      };
+      const response = await axios.post(`${aiServiceUrl}/chat`, payload, { timeout: 30000 });
+      aiReply = response.data?.message || 'Không nhận được phản hồi từ AI.';
+    } catch (err: any) {
+      aiReply = `### Trợ lý AI\n\nHệ thống chưa thể kết nối tới dịch vụ AI (${err.message}).\n\n*Lưu ý: Mọi phân tích chỉ mang tính chất tham khảo thống kê, không đảm bảo chính xác.*`;
+    }
+
+    // Lưu tin nhắn của AI
+    const aiMsg = this.messageRepo.create({
+      role: 'assistant',
+      content: aiReply,
+      conversation,
+    });
+    await this.messageRepo.save(aiMsg);
+
+      return {
+        conversationId: conversation.id,
+        message: aiReply,
+      };
+    } catch (error: any) {
+      require('fs').writeFileSync('error.log', error.stack || error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy danh sách các cuộc trò chuyện của người dùng (sắp xếp mới nhất lên đầu)
+   */
+  async getConversations(userId: string) {
+    const conversations = await this.conversationRepo.find({
+      where: { userId },
+      order: { updatedAt: 'DESC' }, // Order by latest activity
+      take: 50,
+    });
+    
+    // We can just return them. 
+    return conversations;
+  }
+
+  /**
+   * Lấy danh sách tin nhắn của một cuộc trò chuyện cụ thể
+   */
+  async getConversationMessages(userId: string, conversationId: string) {
+    // Kiem tra quyen so huu
+    const conversation = await this.conversationRepo.findOne({
+      where: { id: conversationId, userId },
+    });
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    const messages = await this.messageRepo.find({
+      where: { conversation: { id: conversationId } },
+      order: { timestamp: 'ASC' }, // Sort by timestamp, not UUID
+    });
+
+    return messages.map((m) => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+    }));
+  }
+
+  /**
+   * Xóa một cuộc trò chuyện
+   */
+  async deleteConversation(userId: string, conversationId: string) {
+    const conversation = await this.conversationRepo.findOne({
+      where: { id: conversationId, userId },
+    });
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+    // Delete the conversation (cascade will delete messages)
+    await this.conversationRepo.remove(conversation);
+    return { success: true };
   }
 }

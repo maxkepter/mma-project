@@ -20,7 +20,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: '../.env',
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,
@@ -44,3 +44,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
   ],
 })
 export class AppModule {}
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('DB_USERNAME:', process.env.DB_USERNAME);
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_PORT:', process.env.DB_PORT);
