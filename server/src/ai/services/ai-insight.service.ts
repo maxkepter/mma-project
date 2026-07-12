@@ -506,4 +506,15 @@ export class AIInsightService {
     await this.conversationRepo.remove(conversation);
     return { success: true };
   }
+
+  /**
+   * Xóa một insight
+   */
+  async deleteInsight(insightId: string) {
+    const insight = await this.insightRepo.findOne({ where: { id: insightId } });
+    if (insight) {
+      await this.insightRepo.remove(insight);
+    }
+    return { success: true };
+  }
 }

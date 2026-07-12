@@ -71,23 +71,52 @@ def call_gemini(prompt: str) -> tuple[str, float]:
     if not api_key or api_key == "your-google-api-key-here":
         raise RuntimeError("GOOGLE_API_KEY chưa được cấu hình trong file .env")
 
-    # Import inside the function so the module loads even if the SDK isn't installed
+    import time
     from google import genai
+    from google.genai import types
 
     client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-        config={
-            "temperature": 0.7,
-            "top_p": 0.9,
-            "max_output_tokens": 1024,
-            "system_instruction": (
-                "Bạn luôn phản hồi bằng tiếng Việt có dấu đầy đủ. "
-                "Tuyệt đối không sử dụng tiếng Việt không dấu hay ngôn ngữ khác."
-            ),
-        },
-    )
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config={
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                    "max_output_tokens": 1024,
+                    "system_instruction": (
+                        "Bạn luôn phản hồi bằng tiếng Việt có dấu đầy đủ. "
+                        "Tuyệt đối không sử dụng tiếng Việt không dấu hay ngôn ngữ khác."
+                    ),
+                    "safety_settings": [
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                        ),
+                        types.SafetySetting(
+                            category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                        )
+                    ]
+                },
+            )
+            break
+        except Exception as e:
+            if "503" in str(e) and attempt < max_retries - 1:
+                time.sleep(2)
+                continue
+            raise e
 
     text = (response.text or "").strip()
     if not text:
@@ -253,6 +282,16 @@ def call_gemini_chat(prompt: str, system_instruction: str, history: list[dict] |
                 },
             )
             text = (response.text or "").strip()
+            
+            # Kiểm tra xem có bị cắt ngang bởi Safety không
+            try:
+                if response.candidates and hasattr(response.candidates[0], "finish_reason"):
+                    reason = str(response.candidates[0].finish_reason).upper()
+                    if "SAFETY" in reason:
+                        text += "\n\n*(Nội dung đã bị Google tự động ngắt quãng vì vi phạm chính sách an toàn đối với các nội dung dự đoán số lô đề. Google không cho phép AI đưa ra các dự đoán cờ bạc cụ thể.)*"
+            except Exception:
+                pass
+                
             if not text:
                 raise RuntimeError("Gemini trả về phản hồi rỗng (có thể do bộ lọc an toàn).")
             return text
@@ -279,7 +318,7 @@ async def chat(request: AnalysisRequest):
             "4. Khi phân tích lý do chiến lược thua, hãy chỉ ra các yếu tố kỹ thuật như: tần suất giảm, số gan tăng, chu kỳ thay đổi, điều kiện quá chặt.\n"
             "5. Khi so sánh chiến lược, hãy xếp hạng theo ROI, tỷ lệ thắng (win rate) và đánh giá rủi ro.\n"
             "6. Luôn thêm một câu cảnh báo miễn trừ trách nhiệm ngắn gọn ở cuối phản hồi.\n"
-            "7. Khi người dùng hỏi về 'Thần số học' (Numerology) hoặc 'Giải mã số học', hãy cung cấp các phân tích dự đoán chuyên sâu dựa trên các phương pháp soi cầu như: số nóng, cầu kẹp số, cầu dạng số, tổng giải đặc biệt, số kép, giải 7, và đầu đuôi. Bạn hãy tỏ ra là một chuyên gia 'giải mã số học' với khả năng tư vấn những con số có xác suất cao dựa trên lịch sử (XSMB/XSMN)."
+            "7. Khi được hỏi về dự đoán, soi cầu hoặc giải mã số học, HÃY PHÂN TÍCH XU HƯỚNG CHUNG, TUYỆT ĐỐI KHÔNG liệt kê hay khuyên đánh các con số cụ thể (ví dụ: không nói 'hãy đánh con 12, 34'). Việc khuyên đánh số cụ thể sẽ vi phạm chính sách an toàn của Google. Chỉ đưa ra phân tích về nhịp độ, tần suất."
         )
 
         if request.context:

@@ -24,6 +24,7 @@ const MAPPING = {
   'trash': 'delete',
   'clock.arrow.circlepath': 'history',
   'plus': 'add',
+  'list.bullet': 'list',
 } as IconMapping;
 
 /**

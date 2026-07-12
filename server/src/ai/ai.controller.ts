@@ -34,6 +34,12 @@ export class AIController {
     return this.insightService.generateInsight(dto);
   }
 
+  @Delete('insights/:id')
+  @Public()
+  async deleteInsight(@Param('id') id: string) {
+    return this.insightService.deleteInsight(id);
+  }
+
   @Post('chat-assistant')
   async chatAssistant(@CurrentUser() user: JwtPayload, @Body() dto: ChatAssistantDto) {
     return this.insightService.chatAssistant(user.sub, dto);

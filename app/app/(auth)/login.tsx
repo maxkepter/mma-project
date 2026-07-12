@@ -176,7 +176,7 @@ export default function LoginScreen() {
         formContent
       ) : (
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardView}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

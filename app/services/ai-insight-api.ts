@@ -46,6 +46,10 @@ export const aiInsightApi = {
     return apiClient.post<AIInsightItem>("/ai/insights/generate", dto);
   },
 
+  deleteInsight(insightId: string) {
+    return apiClient.delete<{ success: boolean }>(`/ai/insights/${insightId}`);
+  },
+
   chatAssistant(dto: { message: string; conversationId?: string }) {
     return apiClient.post<ChatResponse>("/ai/chat-assistant", dto);
   },

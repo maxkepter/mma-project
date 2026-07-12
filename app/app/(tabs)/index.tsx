@@ -77,8 +77,7 @@ export default function HomeScreen() {
   const handleGenerateInsight = async () => {
     setGenerating(true);
     try {
-      const today = new Date();
-      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
       await aiInsightApi.generateInsight({ targetDate: dateStr });
       await fetchInsights();
       Alert.alert('Thành công', 'Đã tạo insight mới');
@@ -86,6 +85,16 @@ export default function HomeScreen() {
       Alert.alert('Lỗi', err.message || 'Tạo insight thất bại');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleDeleteInsight = async (id: string) => {
+    try {
+      await aiInsightApi.deleteInsight(id);
+      await fetchInsights();
+      Alert.alert('Thành công', 'Đã xóa phân tích');
+    } catch (err: any) {
+      Alert.alert('Lỗi', err.message || 'Xóa phân tích thất bại');
     }
   };
 
@@ -174,19 +183,29 @@ export default function HomeScreen() {
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               Phân tích hôm nay
             </ThemedText>
-            {DEV_MODE && (
-              <TouchableOpacity
-                style={[styles.generateButton, { backgroundColor: colors.tint }]}
-                onPress={handleGenerateInsight}
-                disabled={generating}
-              >
-                {generating ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <ThemedText style={styles.generateButtonText}>+ Gen Insight</ThemedText>
-                )}
-              </TouchableOpacity>
-            )}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {selectedInsight && (
+                <TouchableOpacity
+                  style={[styles.generateButton, { backgroundColor: '#ef4444' }]}
+                  onPress={() => handleDeleteInsight(selectedInsight.id)}
+                >
+                  <IconSymbol name="trash" size={16} color="#fff" />
+                </TouchableOpacity>
+              )}
+              {DEV_MODE && !selectedInsight && (
+                <TouchableOpacity
+                  style={[styles.generateButton, { backgroundColor: colors.tint }]}
+                  onPress={handleGenerateInsight}
+                  disabled={generating}
+                >
+                  {generating ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <ThemedText style={styles.generateButtonText}>+ Gen Insight</ThemedText>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
           </ThemedView>
 
           <ScrollView
