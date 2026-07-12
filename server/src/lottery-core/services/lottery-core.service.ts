@@ -29,7 +29,10 @@ export class LotteryCoreService implements OnApplicationBootstrap {
         // Cố gắng tải JSON mới nhất từ Github
         await this.dataService.dailyUpdate();
       } catch (dlError) {
-        console.warn('[LotteryCore] Download failed (maybe rate limited), using existing local JSON file.', dlError.message);
+        console.warn(
+          '[LotteryCore] Download failed (maybe rate limited), using existing local JSON file.',
+          dlError.message,
+        );
       }
       const rawData = await this.dataService.getXsmbData();
 
@@ -38,17 +41,25 @@ export class LotteryCoreService implements OnApplicationBootstrap {
         where: {},
         order: { date: 'DESC' },
       });
-      const latestDate = latestResult ? new Date(latestResult.date).getTime() : 0;
+      const latestDate = latestResult
+        ? new Date(latestResult.date).getTime()
+        : 0;
 
       // Chỉ lấy những kết quả có ngày lớn hơn ngày mới nhất trong DB
-      const newRawData = rawData.filter(r => new Date(r.date).getTime() > latestDate);
+      const newRawData = rawData.filter(
+        (r) => new Date(r.date).getTime() > latestDate,
+      );
 
       if (newRawData.length === 0) {
-        console.log(`[LotteryCore] Database is up to date. No new results to seed.`);
+        console.log(
+          `[LotteryCore] Database is up to date. No new results to seed.`,
+        );
         return;
       }
 
-      console.log(`[LotteryCore] Loaded ${newRawData.length} new results. Saving to database...`);
+      console.log(
+        `[LotteryCore] Loaded ${newRawData.length} new results. Saving to database...`,
+      );
 
       // Seed in batches to avoid memory/query limits
       const batchSize = 100;
@@ -66,7 +77,7 @@ export class LotteryCoreService implements OnApplicationBootstrap {
           // Map all prize fields to LotteryNumber entities
           this.addNumber(result, PrizeLevel.Special, raw.special.toString(), 0);
           this.addNumber(result, PrizeLevel.First, raw.prize1.toString(), 0);
-          
+
           this.addNumber(result, PrizeLevel.Second, raw.prize2_1.toString(), 0);
           this.addNumber(result, PrizeLevel.Second, raw.prize2_2.toString(), 1);
 
@@ -93,16 +104,38 @@ export class LotteryCoreService implements OnApplicationBootstrap {
           this.addNumber(result, PrizeLevel.Sixth, raw.prize6_2.toString(), 1);
           this.addNumber(result, PrizeLevel.Sixth, raw.prize6_3.toString(), 2);
 
-          this.addNumber(result, PrizeLevel.Seventh, raw.prize7_1.toString(), 0);
-          this.addNumber(result, PrizeLevel.Seventh, raw.prize7_2.toString(), 1);
-          this.addNumber(result, PrizeLevel.Seventh, raw.prize7_3.toString(), 2);
-          this.addNumber(result, PrizeLevel.Seventh, raw.prize7_4.toString(), 3);
+          this.addNumber(
+            result,
+            PrizeLevel.Seventh,
+            raw.prize7_1.toString(),
+            0,
+          );
+          this.addNumber(
+            result,
+            PrizeLevel.Seventh,
+            raw.prize7_2.toString(),
+            1,
+          );
+          this.addNumber(
+            result,
+            PrizeLevel.Seventh,
+            raw.prize7_3.toString(),
+            2,
+          );
+          this.addNumber(
+            result,
+            PrizeLevel.Seventh,
+            raw.prize7_4.toString(),
+            3,
+          );
 
           entities.push(result);
         }
 
         await this.resultRepo.save(entities);
-        console.log(`[LotteryCore] Seeded batch ${i / batchSize + 1}/${Math.ceil(newRawData.length / batchSize)}`);
+        console.log(
+          `[LotteryCore] Seeded batch ${i / batchSize + 1}/${Math.ceil(newRawData.length / batchSize)}`,
+        );
       }
 
       console.log('[LotteryCore] Seeding completed successfully.');
@@ -111,7 +144,12 @@ export class LotteryCoreService implements OnApplicationBootstrap {
     }
   }
 
-  private addNumber(result: LotteryResult, prizeLevel: PrizeLevel, value: string, position: number) {
+  private addNumber(
+    result: LotteryResult,
+    prizeLevel: PrizeLevel,
+    value: string,
+    position: number,
+  ) {
     const num = new LotteryNumber();
     num.prizeLevel = prizeLevel;
     num.value = value;

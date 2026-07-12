@@ -298,151 +298,164 @@ export class AIInsightService {
       let conversation: ChatConversation | null = null;
       let history: any[] = [];
 
-    if (dto.conversationId) {
-      const found = await this.conversationRepo.findOne({
-        where: { id: dto.conversationId, userId },
-      });
-      if (!found) {
-        throw new Error('Conversation not found');
+      if (dto.conversationId) {
+        const found = await this.conversationRepo.findOne({
+          where: { id: dto.conversationId, userId },
+        });
+        if (!found) {
+          throw new Error('Conversation not found');
+        }
+        conversation = found;
+        // Force update the updatedAt timestamp in DB
+        await this.conversationRepo.update(conversation.id, {
+          updatedAt: new Date(),
+        });
+        conversation.updatedAt = new Date();
+
+        // Fetch last 6 messages for short-term memory
+        const lastMessages = await this.messageRepo.find({
+          where: { conversation: { id: dto.conversationId } },
+          order: { timestamp: 'DESC' },
+          take: 6,
+        });
+        // Reverse to maintain chronological order
+        lastMessages.reverse();
+        history = lastMessages.map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: m.content,
+        }));
+      } else {
+        conversation = this.conversationRepo.create({
+          userId,
+          chatType: 'assistant',
+          title: dto.message.slice(0, 100) || 'Cuộc hội thoại mới',
+        });
+        conversation = await this.conversationRepo.save(conversation);
       }
-      conversation = found;
-      // Force update the updatedAt timestamp in DB
-      await this.conversationRepo.update(conversation.id, { updatedAt: new Date() });
-      conversation.updatedAt = new Date();
 
-      // Fetch last 6 messages for short-term memory
-      const lastMessages = await this.messageRepo.find({
-        where: { conversation: { id: dto.conversationId } },
-        order: { timestamp: 'DESC' },
-        take: 6,
-      });
-      // Reverse to maintain chronological order
-      lastMessages.reverse();
-      history = lastMessages.map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: m.content,
-      }));
-    } else {
-      conversation = this.conversationRepo.create({
-        userId,
-        chatType: 'assistant',
-        title: dto.message.slice(0, 100) || 'Cuộc hội thoại mới',
-      });
-      conversation = await this.conversationRepo.save(conversation);
-    }
-
-    // Thu thập ngữ cảnh dựa trên từ khóa trong câu hỏi
-    const lowerMsg = dto.message.toLowerCase();
-    const contextData: any = {
-      currentDate: new Date().toISOString(),
-    };
-
-    if (lowerMsg.includes('chiến lược') || lowerMsg.includes('strategy')) {
-      const strategies = await this.strategyRepo.find({
-        where: { userId },
-        relations: ['conditions', 'backtestRuns'],
-        take: 5,
-      });
-      contextData.strategies = strategies.map((s) => ({
-        name: s.name,
-        description: s.description,
-        conditions: s.conditions,
-        backtestRuns: s.backtestRuns.slice(0, 3).map((r) => ({
-          startDate: r.startDate,
-          endDate: r.endDate,
-          winRate: r.winRate,
-          profit: r.profit,
-        })),
-      }));
-    }
-
-    if (lowerMsg.includes('nhật ký') || lowerMsg.includes('bet') || lowerMsg.includes('đánh')) {
-      const bets = await this.betEntryRepo.find({
-        where: { userId },
-        relations: ['result'],
-        order: { betDate: 'DESC' },
-        take: 10,
-      });
-      contextData.bets = bets.map((b) => ({
-        number: b.number,
-        amount: b.amount,
-        betDate: b.betDate,
-        status: b.status,
-        result: b.result,
-      }));
-    }
-
-    if (lowerMsg.includes('thống kê') || lowerMsg.includes('tần suất') || lowerMsg.includes('gan')) {
-      const [frequency, gan] = await Promise.all([
-        this.statisticsService.getFrequency(30),
-        this.statisticsService.getGan(100),
-      ]);
-      contextData.statistics = {
-        topFrequency: frequency.slice(0, 5),
-        topGan: gan.slice(0, 5),
+      // Thu thập ngữ cảnh dựa trên từ khóa trong câu hỏi
+      const lowerMsg = dto.message.toLowerCase();
+      const contextData: any = {
+        currentDate: new Date().toISOString(),
       };
-    }
 
-    if (lowerMsg.includes('tin tức') || lowerMsg.includes('news')) {
-      const news = await this.newsRepo.find({
-        order: { publishDate: 'DESC' },
-        take: 3,
+      if (lowerMsg.includes('chiến lược') || lowerMsg.includes('strategy')) {
+        const strategies = await this.strategyRepo.find({
+          where: { userId },
+          relations: ['conditions', 'backtestRuns'],
+          take: 5,
+        });
+        contextData.strategies = strategies.map((s) => ({
+          name: s.name,
+          description: s.description,
+          conditions: s.conditions,
+          backtestRuns: s.backtestRuns.slice(0, 3).map((r) => ({
+            startDate: r.startDate,
+            endDate: r.endDate,
+            winRate: r.winRate,
+            profit: r.profit,
+          })),
+        }));
+      }
+
+      if (
+        lowerMsg.includes('nhật ký') ||
+        lowerMsg.includes('bet') ||
+        lowerMsg.includes('đánh')
+      ) {
+        const bets = await this.betEntryRepo.find({
+          where: { userId },
+          relations: ['result'],
+          order: { betDate: 'DESC' },
+          take: 10,
+        });
+        contextData.bets = bets.map((b) => ({
+          number: b.number,
+          amount: b.amount,
+          betDate: b.betDate,
+          status: b.status,
+          result: b.result,
+        }));
+      }
+
+      if (
+        lowerMsg.includes('thống kê') ||
+        lowerMsg.includes('tần suất') ||
+        lowerMsg.includes('gan')
+      ) {
+        const [frequency, gan] = await Promise.all([
+          this.statisticsService.getFrequency(30),
+          this.statisticsService.getGan(100),
+        ]);
+        contextData.statistics = {
+          topFrequency: frequency.slice(0, 5),
+          topGan: gan.slice(0, 5),
+        };
+      }
+
+      if (lowerMsg.includes('tin tức') || lowerMsg.includes('news')) {
+        const news = await this.newsRepo.find({
+          order: { publishDate: 'DESC' },
+          take: 3,
+        });
+        contextData.news = news.map((n) => ({
+          title: n.title,
+          summary: n.summary,
+        }));
+      }
+
+      // Luôn luôn cung cấp kết quả mới nhất cho AI để tránh việc nó bị thiếu thông tin
+      const latestResults = await this.lotteryResultRepo.find({
+        take: 1,
+        order: { date: 'DESC' },
+        relations: ['numbers'],
       });
-      contextData.news = news.map((n) => ({
-        title: n.title,
-        summary: n.summary,
-      }));
-    }
+      const latestResult = latestResults[0];
+      if (latestResult) {
+        contextData.latestLotteryResult = {
+          date: latestResult.date,
+          region: latestResult.region,
+          numbers: latestResult.numbers.map((n) => ({
+            prize: n.prizeLevel,
+            value: n.value,
+          })),
+        };
+      }
 
-    // Luôn luôn cung cấp kết quả mới nhất cho AI để tránh việc nó bị thiếu thông tin
-    const latestResults = await this.lotteryResultRepo.find({
-      take: 1,
-      order: { date: 'DESC' },
-      relations: ['numbers'],
-    });
-    const latestResult = latestResults[0];
-    if (latestResult) {
-      contextData.latestLotteryResult = {
-        date: latestResult.date,
-        region: latestResult.region,
-        numbers: latestResult.numbers.map((n) => ({
-          prize: n.prizeLevel,
-          value: n.value,
-        })),
-      };
-    }
+      // Lưu tin nhắn của user
+      const userMsg = this.messageRepo.create({
+        role: 'user',
+        content: dto.message,
+        conversation,
+      });
+      await this.messageRepo.save(userMsg);
 
-    // Lưu tin nhắn của user
-    const userMsg = this.messageRepo.create({
-      role: 'user',
-      content: dto.message,
-      conversation,
-    });
-    await this.messageRepo.save(userMsg);
+      // Gửi sang AI Service
+      const aiServiceUrl =
+        process.env.AI_SERVICE_URL || 'http://localhost:8000';
+      let aiReply = '';
 
-    // Gửi sang AI Service
-    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-    let aiReply = '';
+      try {
+        const payload = {
+          data: dto.message,
+          context: JSON.stringify(contextData),
+          history: history.length > 0 ? history : undefined,
+        };
+        const response = await axios.post(`${aiServiceUrl}/chat`, payload, {
+          timeout: 30000,
+        });
+        aiReply = response.data?.message || 'Không nhận được phản hồi từ AI.';
+      } catch (err: any) {
+        aiReply = `### Trợ lý AI\n\nHệ thống chưa thể kết nối tới dịch vụ AI (${err.message}).\n\n*Lưu ý: Mọi phân tích chỉ mang tính chất tham khảo thống kê, không đảm bảo chính xác.*`;
+      }
 
-    try {
-      const payload = {
-        data: dto.message,
-        context: JSON.stringify(contextData),
-        history: history.length > 0 ? history : undefined,
-      };
-      const response = await axios.post(`${aiServiceUrl}/chat`, payload, { timeout: 30000 });
-      aiReply = response.data?.message || 'Không nhận được phản hồi từ AI.';
-    } catch (err: any) {
-      aiReply = `### Trợ lý AI\n\nHệ thống chưa thể kết nối tới dịch vụ AI (${err.message}).\n\n*Lưu ý: Mọi phân tích chỉ mang tính chất tham khảo thống kê, không đảm bảo chính xác.*`;
-    }
-
-    // Lưu tin nhắn của AI
-    const aiMsg = this.messageRepo.create({
-      role: 'assistant',
-      content: aiReply,
-      conversation,
-    });
-    await this.messageRepo.save(aiMsg);
+      // Lưu tin nhắn của AI
+      const aiMsg = this.messageRepo.create({
+        role: 'assistant',
+        content: aiReply,
+        conversation,
+      });
+      await this.messageRepo.save(aiMsg);
 
       return {
         conversationId: conversation.id,
@@ -463,8 +476,8 @@ export class AIInsightService {
       order: { updatedAt: 'DESC' }, // Order by latest activity
       take: 50,
     });
-    
-    // We can just return them. 
+
+    // We can just return them.
     return conversations;
   }
 

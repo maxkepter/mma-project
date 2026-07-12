@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Query, Body, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { AIInsightService } from './services/ai-insight.service';
 import type { GenerateInsightDto } from './services/ai-insight.service';
 import { Public } from '../auth/decorators/public.decorator';
@@ -35,7 +44,10 @@ export class AIController {
   }
 
   @Post('chat-assistant')
-  async chatAssistant(@CurrentUser() user: JwtPayload, @Body() dto: ChatAssistantDto) {
+  async chatAssistant(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ChatAssistantDto,
+  ) {
     return this.insightService.chatAssistant(user.sub, dto);
   }
 
@@ -45,12 +57,21 @@ export class AIController {
   }
 
   @Get('conversations/:id/messages')
-  async getConversationMessages(@CurrentUser() user: JwtPayload, @Param('id') conversationId: string) {
-    return this.insightService.getConversationMessages(user.sub, conversationId);
+  async getConversationMessages(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') conversationId: string,
+  ) {
+    return this.insightService.getConversationMessages(
+      user.sub,
+      conversationId,
+    );
   }
 
   @Delete('conversations/:id')
-  async deleteConversation(@CurrentUser() user: JwtPayload, @Param('id') conversationId: string) {
+  async deleteConversation(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') conversationId: string,
+  ) {
     return this.insightService.deleteConversation(user.sub, conversationId);
   }
 }
