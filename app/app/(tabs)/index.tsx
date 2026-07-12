@@ -416,21 +416,6 @@ export default function HomeScreen() {
                   borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
                 },
               ]}
-              onPress={() => router.push('/strategy' as any)}
-            >
-              <IconSymbol name="chevron.right" size={32} color={colors.tint} />
-              <ThemedText style={styles.actionLabel}>Chiến lược</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.actionCard,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
-                  borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
-                },
-              ]}
               onPress={() => router.push('/(tabs)/portfolio/history' as any)}
             >
               <IconSymbol name="house.fill" size={32} color={colors.tint} />

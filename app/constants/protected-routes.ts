@@ -12,7 +12,7 @@
 const PROTECTED_SEGMENTS = new Set<string>([
   'profile',
   'portfolio',     // matches /(tabs)/portfolio/*
-  'strategy',      // matches /strategy/*
+  // 'strategy' removed: feature temporarily disabled pending bug fix.
   'ai-assistant',  // matches /ai-assistant/*
   // 'lottery' is intentionally NOT here — Home shows latest XSMB result, and
   // /(tabs)/lottery/detail + /(tabs)/lottery/lookup are public for guests.

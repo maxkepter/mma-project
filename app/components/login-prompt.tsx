@@ -6,7 +6,7 @@
  *   - Tap "Hủy" → close the prompt, leave user on the current screen.
  *
  * Why not redirect: avoids losing the user's context (e.g. they were deep-linking into
- * /strategy/123). They can still tap back themselves if they want.
+ * a protected screen). They can still tap back themselves if they want.
  */
 import React from 'react';
 import {

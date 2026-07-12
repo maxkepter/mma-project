@@ -5,7 +5,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeView } from '@/components/safe-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -38,7 +38,6 @@ function formatDate(iso: string): string {
 export default function LotteryDetailScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const router = useRouter();
   const { date } = useLocalSearchParams<{ date?: string }>();
 
   const [loading, setLoading] = useState(true);
