@@ -106,6 +106,15 @@ apiClient.interceptors.response.use(
       !originalRequest._retry &&
       !originalRequest.url?.includes('/auth/refresh')
     ) {
+      // For guests (no refresh token saved), there is nothing to refresh — surface
+      // the 401 to the caller as-is. Triggering the auth-failure listener here would
+      // flip a guest's session to "logged out" and force-render the LoginPrompt on
+      // public screens they have legitimate access to.
+      const refreshToken = await TokenStorage.getRefreshToken();
+      if (!refreshToken) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         // Queue this request and wait for the refresh process to complete
         return new Promise((resolve, reject) => {
@@ -122,10 +131,6 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = await TokenStorage.getRefreshToken();
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
 
         // Call the refresh endpoint
         const response = await axios.post(

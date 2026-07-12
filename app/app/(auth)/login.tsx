@@ -11,16 +11,25 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '../../contexts/auth-context';
 import { SafeView } from '@/components/safe-view';
 
+// Only internal app paths are allowed in returnTo. Blocks external schemes and protocol tricks.
+function sanitizeReturnTo(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return null;
+  return raw;
+}
+
 export default function LoginScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const { login } = useAuth();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ returnTo?: string | string[] }>();
+  const returnTo = sanitizeReturnTo(Array.isArray(params.returnTo) ? params.returnTo[0] : params.returnTo);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -58,7 +67,11 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(username, password);
-      // Navigation to /(tabs) will be handled automatically by the auth guard in _layout.tsx
+      // Navigate to returnTo (sanitized) if present, otherwise let the auth guard
+      // in _layout.tsx send the user to /(tabs).
+      if (returnTo) {
+        router.replace(returnTo as any);
+      }
     } catch (error: any) {
       setLoading(false);
       const serverMessage =

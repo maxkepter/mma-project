@@ -9,12 +9,14 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeView } from '@/components/safe-view';
+import { LoginPrompt } from '@/components/login-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { JournalService, PortfolioResponse } from '@/services/journal.service';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function PortfolioScreen() {
   const [data, setData] = useState<PortfolioResponse | null>(null);
@@ -22,6 +24,7 @@ export default function PortfolioScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { isAuthenticated } = useAuth();
 
   const fetchData = async () => {
     try {
@@ -37,8 +40,12 @@ export default function PortfolioScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (!isAuthenticated) {
+        setLoading(false);
+        return;
+      }
       fetchData();
-    }, []),
+    }, [isAuthenticated]),
   );
 
   const onRefresh = () => {
@@ -84,6 +91,22 @@ export default function PortfolioScreen() {
       </TouchableOpacity>
     </ThemedView>
   );
+
+  // Defense in depth: if a guest somehow lands here (deep link, race), show the prompt
+  // directly so user-specific data never flashes.
+  if (!isAuthenticated) {
+    return (
+      <SafeView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#fff' }]}>
+        <View style={styles.guestContainer}>
+          <LoginPrompt
+            visible
+            onClose={() => router.replace('/(tabs)' as any)}
+            message="Vui lòng đăng nhập để xem sổ đề cá nhân của bạn."
+          />
+        </View>
+      </SafeView>
+    );
+  }
 
   return (
     <SafeView style={styles.container}>
@@ -141,6 +164,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',

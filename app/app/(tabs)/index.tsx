@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   StyleSheet,
   ScrollView,
@@ -16,6 +16,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/auth-context';
 import { aiInsightApi, AIInsightItem } from '@/services/ai-insight-api';
+import { lotteryApi, getPrizeValues, LotteryResultDetail } from '@/services/lottery-api';
 
 const DEV_MODE = process.env.EXPO_PUBLIC_DEV_MODE === 'true';
 
@@ -50,6 +51,9 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [insights, setInsights] = useState<AIInsightItem[]>([]);
+  const [latest, setLatest] = useState<LotteryResultDetail | null>(null);
+  const [latestLoading, setLatestLoading] = useState(true);
+  const [latestError, setLatestError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(last7Days[0]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -81,6 +85,31 @@ export default function HomeScreen() {
     }, [isAuthenticated]),
   );
 
+  // Latest XSMB result is public — refresh on focus so the home card stays current.
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
+      const loadLatest = async () => {
+        setLatestLoading(true);
+        setLatestError(null);
+        try {
+          const res = await lotteryApi.getLatest();
+          if (!cancelled) setLatest(res.data);
+        } catch (err: any) {
+          if (!cancelled) {
+            setLatestError(err?.message || 'Không tải được kết quả mới nhất');
+          }
+        } finally {
+          if (!cancelled) setLatestLoading(false);
+        }
+      };
+      loadLatest();
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
   const handleGenerateInsight = async () => {
     setGenerating(true);
     try {
@@ -109,12 +138,16 @@ export default function HomeScreen() {
   });
 
   // Mock lottery result data
-  const latestResult = {
-    province: 'TP. Hồ Chí Minh',
-    date: '06/07/2026',
-    specialPrize: '123456',
-    firstPrize: '78901',
-  };
+  const latestResult = useMemo(() => {
+    if (!latest) return null;
+    const [y, m, d] = latest.date.split('-');
+    return {
+      province: 'Miền Bắc',
+      date: `${d}/${m}/${y}`,
+      specialPrize: getPrizeValues(latest, 'Special')[0] ?? '',
+      firstPrize: getPrizeValues(latest, 'First')[0] ?? '',
+    };
+  }, [latest]);
 
   return (
     <SafeView
@@ -128,7 +161,7 @@ export default function HomeScreen() {
         <ThemedView style={styles.header}>
           <ThemedText type="title">Trang chủ</ThemedText>
           <ThemedText style={[styles.greeting, { color: colors.icon }]}>
-            Xin chào, {user?.displayName || 'Người dùng'}
+            Xin chào, {isAuthenticated ? (user?.displayName || 'bạn') : 'bạn'}
           </ThemedText>
         </ThemedView>
 
@@ -142,37 +175,58 @@ export default function HomeScreen() {
             },
           ]}
         >
-          <View style={styles.cardHeader}>
-            <ThemedText type="subtitle">Kết quả mới nhất</ThemedText>
-            <ThemedText style={[styles.date, { color: colors.icon }]}>
-              {latestResult.date}
+          {latestLoading ? (
+            <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+              <ActivityIndicator color={colors.tint} />
+            </View>
+          ) : latestError || !latestResult ? (
+            <ThemedText style={{ color: '#ef4444', textAlign: 'center' }}>
+              {latestError || 'Không có dữ liệu kết quả'}
             </ThemedText>
-          </View>
-          <ThemedText style={[styles.province, { color: colors.icon }]}>
-            {latestResult.province}
-          </ThemedText>
-          <View style={styles.resultRow}>
-            <ThemedText style={styles.resultLabel}>Giải đặc biệt:</ThemedText>
-            <ThemedText
-              type="defaultSemiBold"
-              style={[styles.resultValue, { color: colors.tint }]}
-            >
-              {latestResult.specialPrize}
-            </ThemedText>
-          </View>
-          <View style={styles.resultRow}>
-            <ThemedText style={styles.resultLabel}>Giải nhất:</ThemedText>
-            <ThemedText type="defaultSemiBold" style={styles.resultValue}>
-              {latestResult.firstPrize}
-            </ThemedText>
-          </View>
-          <TouchableOpacity
-            style={[styles.viewDetailButton, { borderColor: colors.tint }]}
-          >
-            <ThemedText style={[styles.viewDetailText, { color: colors.tint }]}>
-              Xem chi tiết
-            </ThemedText>
-          </TouchableOpacity>
+          ) : (
+            <>
+              <View style={styles.cardHeader}>
+                <ThemedText type="subtitle">Kết quả mới nhất</ThemedText>
+                <ThemedText style={[styles.date, { color: colors.icon }]}>
+                  {latestResult.date}
+                </ThemedText>
+              </View>
+              <ThemedText style={[styles.province, { color: colors.icon }]}>
+                {latestResult.province}
+              </ThemedText>
+              <View style={styles.resultRow}>
+                <ThemedText style={styles.resultLabel}>Giải đặc biệt:</ThemedText>
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={[styles.resultValue, { color: colors.tint }]}
+                >
+                  {latestResult.specialPrize || '—'}
+                </ThemedText>
+              </View>
+              <View style={styles.resultRow}>
+                <ThemedText style={styles.resultLabel}>Giải nhất:</ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.resultValue}>
+                  {latestResult.firstPrize || '—'}
+                </ThemedText>
+              </View>
+              <TouchableOpacity
+                style={[styles.viewDetailButton, { borderColor: colors.tint }]}
+                onPress={() => router.push('/(tabs)/lottery/detail' as any)}
+              >
+                <ThemedText style={[styles.viewDetailText, { color: colors.tint }]}>
+                  Xem chi tiết
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.viewDetailButton, { borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb', marginTop: 8 }]}
+                onPress={() => router.push('/(tabs)/lottery/lookup' as any)}
+              >
+                <ThemedText style={[styles.viewDetailText, { color: colors.text }]}>
+                  Tra cứu theo ngày
+                </ThemedText>
+              </TouchableOpacity>
+            </>
+          )}
         </ThemedView>
 
         {/* Investment Suggestions  */}
@@ -281,6 +335,32 @@ export default function HomeScreen() {
                 {selectedInsight.content}
               </ThemedText>
             </ThemedView>
+          ) : !isAuthenticated ? (
+            <ThemedView
+              style={[
+                styles.insightCard,
+                {
+                  backgroundColor:
+                    colorScheme === 'dark' ? '#1f2937' : '#f9fafb',
+                  borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
+                  alignItems: 'center',
+                  paddingVertical: 24,
+                  gap: 12,
+                },
+              ]}
+            >
+              <ThemedText style={{ color: colors.icon, textAlign: 'center' }}>
+                Đăng nhập để nhận phân tích cá nhân.
+              </ThemedText>
+              <TouchableOpacity
+                style={[styles.viewDetailButton, { borderColor: colors.tint }]}
+                onPress={() => router.push('/login' as any)}
+              >
+                <ThemedText style={[styles.viewDetailText, { color: colors.tint }]}>
+                  Đăng nhập
+                </ThemedText>
+              </TouchableOpacity>
+            </ThemedView>
           ) : (
             <ThemedView
               style={[
@@ -351,6 +431,7 @@ export default function HomeScreen() {
                   borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
                 },
               ]}
+              onPress={() => router.push('/(tabs)/portfolio/history' as any)}
             >
               <IconSymbol name="house.fill" size={32} color={colors.tint} />
               <ThemedText style={styles.actionLabel}>Nhật ký</ThemedText>

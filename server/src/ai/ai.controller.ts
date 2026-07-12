@@ -6,7 +6,6 @@ import {
   Body,
   Param,
   Delete,
-  UseGuards,
 } from '@nestjs/common';
 import { AIInsightService } from './services/ai-insight.service';
 import type { GenerateInsightDto } from './services/ai-insight.service';
