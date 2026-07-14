@@ -294,10 +294,14 @@ export class StrategyService {
       winRate,
       profit: totalProfit,
       result,
-      saved: false,
+      saved: dto.save ?? false,
+      name: dto.name,
     });
 
-    return this.backtestRepo.save(backtestRun);
+    if (dto.save) {
+      return this.backtestRepo.save(backtestRun);
+    }
+    return backtestRun;
   }
 
   async saveBacktestRun(
@@ -311,6 +315,12 @@ export class StrategyService {
 
     const run = await this.backtestRepo.findOne({ where: { id: runId } });
     if (!run) throw new NotFoundException('Backtest run not found');
+
+    if (dto.saved === false) {
+      await this.backtestRepo.remove(run);
+      run.saved = false;
+      return run;
+    }
 
     run.saved = dto.saved;
     if (dto.name !== undefined) run.name = dto.name;

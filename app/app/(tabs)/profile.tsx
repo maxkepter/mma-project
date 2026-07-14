@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { SafeView } from '@/components/safe-view';
+import { LoginPrompt } from '@/components/login-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
@@ -38,7 +39,7 @@ function getInitials(name: string): string {
 export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
 
   const cardBg = colorScheme === 'dark' ? '#1f2937' : '#f9fafb';
   const cardBorder = colorScheme === 'dark' ? '#374151' : '#e5e7eb';
@@ -66,6 +67,23 @@ export default function ProfileScreen() {
 
   const displayName = user?.displayName || 'Người dùng';
   const initials = getInitials(displayName);
+
+  // Defense in depth: RootLayoutNav already opens the LoginPrompt for guests, but if
+  // this screen is mounted while the auth state flips back to false (e.g. token expired
+  // mid-render), render the prompt directly instead of flashing user-specific data.
+  if (!isAuthenticated) {
+    return (
+      <SafeView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.guestContainer}>
+          <LoginPrompt
+            visible
+            onClose={() => {/* no-op: user must login or navigate away */}}
+            message="Vui lòng đăng nhập để xem thông tin cá nhân của bạn."
+          />
+        </View>
+      </SafeView>
+    );
+  }
 
   return (
     <SafeView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -149,6 +167,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     paddingHorizontal: 16,

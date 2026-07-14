@@ -43,7 +43,9 @@ export class JournalProcessor {
     this.logger.log(`found ${pendingBets.length} pending bets to process.`);
 
     const dates = [
-      ...new Set(pendingBets.map((b) => new Date(b.betDate).toISOString().split('T')[0])),
+      ...new Set(
+        pendingBets.map((b) => new Date(b.betDate).toISOString().split('T')[0]),
+      ),
     ];
     const resultsMap = new Map<string, LotteryResult>();
 
